@@ -1,0 +1,19 @@
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# Local libraries and virtual environments
+.venv/
+venv/
+env/
+Libs/
+scratch/
+
+# User-specific files
+.idea/
+.vscode/
+
+# Ignore large binary datasets (keep folder structure)
+# data/pinn_inputs.npy
+# data/pinn_targets.npy
+# models/pinn_laser_model.pt
