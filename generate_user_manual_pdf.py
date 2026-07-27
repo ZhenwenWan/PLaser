@@ -34,7 +34,7 @@ def add_footer(ax, page_num):
     ax.text(0.05, 0.05, "© 2026 Zhenwen Wan (AI + Simulation Expert). All rights reserved.", color=MUTED_TEXT, fontsize=8)
     ax.text(0.90, 0.05, f"Page {page_num}", color=MUTED_TEXT, fontsize=9)
 
-def draw_paragraph(ax, text, x, y, max_len=85, line_height=0.020, color="#e6f1ff", fontsize=9.5):
+def draw_paragraph(ax, text, x, y, max_len=100, line_height=0.020, color="#e6f1ff", fontsize=9.5):
     words = text.split()
     curr_line = ""
     lines = []
@@ -92,7 +92,7 @@ with PdfPages(str(output_pdf_path)) as pdf:
     ax.text(0.1, 0.25, "Laser Cavity Designers, Optoelectronic Engineers & Research Collaborators", color=TEXT_COLOR, fontsize=10.5)
     
     ax.text(0.1, 0.20, "AUTHOR & SERVICE SCOPE:", color=MUTED_TEXT, fontsize=9, fontweight="bold")
-    ax.text(0.1, 0.17, "Zhenwen Wan (AI + Semiconductor Simulation Expert  |  Service: Custom PINN Solvers)", color=TEXT_COLOR, fontsize=10)
+    ax.text(0.1, 0.17, "Zhenwen Wan (AI + Simulation Expert  |  Service: Custom PINN Solvers)", color=TEXT_COLOR, fontsize=10)
     
     pdf.savefig(fig, facecolor=fig.get_facecolor(), edgecolor="none")
     plt.close()
@@ -211,8 +211,8 @@ with PdfPages(str(output_pdf_path)) as pdf:
             ax.add_patch(rect)
         
         ax.text(0.06, table_y, row[0], color=row_color, fontsize=8, fontweight=font_wt, transform=ax.transAxes)
-        ax.text(0.36, table_y, row[1], color=row_color, fontsize=8, fontweight=font_wt, transform=ax.transAxes)
-        ax.text(0.68, table_y, row[2], color=row_color, fontsize=8, fontweight=font_wt, transform=ax.transAxes)
+        ax.text(0.26, table_y, row[1], color=row_color, fontsize=8, fontweight=font_wt, transform=ax.transAxes)
+        ax.text(0.54, table_y, row[2], color=row_color, fontsize=8, fontweight=font_wt, transform=ax.transAxes)
         table_y -= 0.03
         
     add_footer(ax, 3)
@@ -242,10 +242,10 @@ with PdfPages(str(output_pdf_path)) as pdf:
     y = draw_paragraph(ax, layout_txt, 0.05, y)
     
     # Embed annotated dashboard screenshot
-    embed_image(fig, assets_dir / "dashboard_annotated.png", 0.05, 0.44, 0.90, 0.28)
-    ax.text(0.5, 0.42, "Figure 3.1: Annotated PLaser web application interface showing sliders and live metrics.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
+    embed_image(fig, assets_dir / "dashboard_annotated.png", 0.05, 0.49, 0.90, 0.25)
+    ax.text(0.5, 0.47, "Figure 3.1: Annotated PLaser web application interface showing sliders and live metrics.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
     
-    y = 0.39
+    y = 0.43
     ax.text(0.05, y, "3.2 Understanding Spatial Hole Burning (SHB)", color=ACCENT_GREEN, fontsize=11, fontweight="bold")
     y -= 0.022
     shb_txt = (
@@ -257,7 +257,7 @@ with PdfPages(str(output_pdf_path)) as pdf:
     y = draw_paragraph(ax, shb_txt, 0.05, y)
     
     # Embed SHB explainer diagram
-    embed_image(fig, assets_dir / "shb_explainer.png", 0.05, 0.12, 0.90, 0.20)
+    embed_image(fig, assets_dir / "shb_explainer.png", 0.05, 0.12, 0.90, 0.18)
     ax.text(0.5, 0.10, "Figure 3.2: Interaction of growing optical field intensity with depleted carrier profile.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
     
     add_footer(ax, 4)

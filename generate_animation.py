@@ -164,7 +164,7 @@ for frame in range(total_frames):
             fig.text(0.5, 0.52, "Discovered Optimized Cavity Configuration:", color="#ffffff", fontsize=16, fontweight="bold", ha="center")
             fig.text(0.5, 0.44, "R1 = 0.90 (HR)  |  R2 = 0.30 (Cleaved)  |  L = 300 um  |  T0 = 250 K", color="#64ffda", fontsize=15, ha="center")
             fig.text(0.5, 0.36, "Physics-Informed Neural Network Surrogate  |  1,000,000x Speedup", color="#8892b0", fontsize=12, ha="center")
-            fig.text(0.5, 0.28, "Contact: Zhenwen Wan (AI + Semiconductor Simulation Expert)", color="#8892b0", fontsize=10, ha="center")
+            fig.text(0.5, 0.28, "Contact: Zhenwen Wan (AI + Simulation Expert)", color="#8892b0", fontsize=10, ha="center")
             
         write_frame_to_video()
         continue
