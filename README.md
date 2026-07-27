@@ -71,6 +71,13 @@ python -m streamlit run app.py
 ```
 A browser tab will automatically open at `http://localhost:8501`.
 
+### Step 4: Run the Demo Animation Script
+Generate a 24-second HD demonstration video (`PLaser_Demonstration.mp4`) sweeping parameters dynamically across multiple viewports:
+```bash
+python generate_animation.py
+```
+*The resulting video displays live parametric sliders, global gauges (Power, WPE, current), and real-time longitudinal profiles of carrier density and optical field, demonstrating Spatial Hole Burning in action.*
+
 ---
 
 ## 4. User Manual: Visualize & Export Results
