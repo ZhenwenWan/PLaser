@@ -27,11 +27,19 @@ os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
 os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
-# Add Libs and Tools to path
-
-
-
-import torch
+# Conditional path injection for local PyTorch libs
+try:
+    import torch
+except ImportError:
+    libs_path = r"C:\Users\aw4wz\Documents\Codex\Lasers\Lasers\Libs"
+    import os
+    if os.path.exists(libs_path):
+        sys.path.insert(0, libs_path)
+    try:
+        import torch
+    except ImportError:
+        print("Error: PyTorch not found. Please activate virtual environment or install torch.")
+        sys.exit(1)
 torch.set_num_threads(1)
 import torch.nn as nn
 import torch.optim as optim
@@ -254,4 +262,5 @@ def train():
     plt.close()
     print(f"Saved training loss plot to {plot_path.name}")
     
-    
+if __name__ == "__main__":
+    train()
