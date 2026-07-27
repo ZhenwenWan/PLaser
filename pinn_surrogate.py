@@ -47,7 +47,7 @@ class PINNSurrogate:
         
         # Initialize and load model weights
         self.model = PINNLaser(5, 105)
-        model_path = model_dir / "pinn_laser_model.pt"
+        model_path = model_dir / "models" / "pinn_laser_model.pt" if (model_dir / "models").exists() else model_dir / "pinn_laser_model.pt"
         if not model_path.exists():
             raise FileNotFoundError(f"Model weights not found at {model_path}")
             
