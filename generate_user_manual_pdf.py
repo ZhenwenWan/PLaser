@@ -13,7 +13,7 @@ import numpy as np
 
 # Setup paths
 PLASER_DIR = Path(__file__).resolve().parent
-output_pdf_path = PLASER_DIR / "PLaser_User_Manual_Updated.pdf"
+output_pdf_path = PLASER_DIR / "PLaser_User_Manual.pdf"
 assets_dir = PLASER_DIR / "docs" / "manual_assets"
 
 # Theme Colors matching the PLaser Dashboard
