@@ -83,7 +83,7 @@ python generate_animation.py
 ## 4. User Manual: Visualize & Export Results
 
 For a complete task-based onboarding manual with annotated layouts, workflow schematics, physical explainers, and validation curves, see:
-* **[PLaser User Manual PDF (Updated)](file:///C:/Users/aw4wz/Documents/Codex/PLaser/PLaser_User_Manual_Updated.pdf)**
+* **[PLaser User Manual PDF](file:///C:/Users/aw4wz/Documents/Codex/PLaser/PLaser_User_Manual.pdf)**
 * **[PLaser Demonstration Video MP4](file:///C:/Users/aw4wz/Documents/Codex/PLaser/PLaser_Demonstration.mp4)**
 
 ### Visualizing Performance
