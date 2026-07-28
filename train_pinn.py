@@ -164,7 +164,7 @@ def train():
     E_phot = 6.62607015e-34 * 1.934e14
     
     print("\nTraining the PINN model...")
-    epochs = 150
+    epochs = 600
     loss_history = []
     
     for epoch in range(epochs):
@@ -229,15 +229,26 @@ def train():
             
         loss_phys = phys_residual / len(nodes)
         
+        # 3. Spatial smoothness regularization (TV + Laplacian)
+        diff1_N = pred[:, 4:54] - pred[:, 3:53]
+        diff1_P = pred[:, 55:105] - pred[:, 54:104]
+        loss_smooth1 = torch.mean(diff1_N**2) + torch.mean(diff1_P**2)
+        
+        diff2_N = pred[:, 5:54] - 2 * pred[:, 4:53] + pred[:, 3:52]
+        diff2_P = pred[:, 56:105] - 2 * pred[:, 55:104] + pred[:, 54:103]
+        loss_smooth2 = torch.mean(diff2_N**2) + torch.mean(diff2_P**2)
+        
+        loss_smooth = loss_smooth1 + 10.0 * loss_smooth2
+        
         # Combined loss
-        loss = loss_data + 0.05 * loss_phys
+        loss = loss_data + 0.05 * loss_phys + 1.5 * loss_smooth
         
         loss.backward()
         optimizer.step()
         
         loss_history.append(loss.item())
-        if (epoch + 1) % 15 == 0:
-            print(f"  Epoch {epoch+1:3d}/{epochs}: Loss = {loss.item():.6e} (Data={loss_data.item():.6e}, Phys={loss_phys.item():.6e})")
+        if (epoch + 1) % 50 == 0:
+            print(f"  Epoch {epoch+1:3d}/{epochs}: Loss = {loss.item():.6e} (Data={loss_data.item():.6e}, Phys={loss_phys.item():.6e}, Smooth={loss_smooth.item():.6e})")
             
     # Save model weights
     torch.save(model.state_dict(), str(RUN_DIR / "models" / "pinn_laser_model.pt"))

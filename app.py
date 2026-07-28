@@ -100,90 +100,139 @@ def main():
     P_prof = res["P"]
     z_grid = res["z_grid"]
     
-    # Row 1: Key Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-val">{P_opt*1000:.2f} mW</div>
-                <div class="metric-label">Optical Output Power</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-val">{wpe * 100:.3f} %</div>
-                <div class="metric-label">Wall-Plug Efficiency (WPE)</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with col3:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-val">{I_total:.3f} A</div>
-                <div class="metric-label">Total Terminal Current</div>
-            </div>
-        """, unsafe_allow_html=True)
-    with col4:
-        # Physical analysis status
-        status = "Inactive"
-        color = "#ff3366"
-        if P_opt > 0.0001:
-            if wpe > 0.01:
-                status = "Optimized Lasing"
-                color = "#00ffcc"
-            elif T0 > 325:
-                status = "Thermal Droop"
-                color = "#ffaa00"
-            else:
-                status = "Near Threshold"
-                color = "#58a6ff"
+    # State logic based on model predictions
+    status = "Inactive"
+    color = "#ff3366"
+    if P_opt > 0.0001:
+        if wpe > 0.01:
+            status = "Optimized Lasing"
+            color = "#00ffcc"
+        elif T0 > 325:
+            status = "Thermal Droop"
+            color = "#ffaa00"
         else:
-            status = "Below Threshold"
-            color = "#8b949e"
-            
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-val" style="color: {color};">{status}</div>
-                <div class="metric-label">Lasing State</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
+            status = "Near Threshold"
+            color = "#58a6ff"
+    else:
+        status = "Below Threshold"
+        color = "#8b949e"
+
+    # Display Metrics in the Sidebar left panel
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(f"**Lasing State:** <span style='color: {color}; font-weight: bold; font-size: 1.1rem;'>{status}</span>", unsafe_allow_html=True)
+    st.sidebar.metric("Output Power (mW)", f"{P_opt * 1000.0:.2f}")
+    st.sidebar.metric("Wall-Plug Efficiency (WPE)", f"{wpe * 100.0:.3f} %")
+    st.sidebar.metric("Total Current (A)", f"{I_total:.3f}")
+    
     st.write("")
     
-    # Row 2: Visualization Charts
-    col_plot1, col_plot2 = st.columns(2)
+    # 3 columns for 6 reduced viewports of distributions
+    col_long, col_trans2d, col_trans1d = st.columns(3)
     
-    # Plot 1: Internal Optical Power
-    with col_plot1:
-        st.subheader("📈 Longitudinal Optical Power Profile")
-        fig1, ax1 = plt.subplots(figsize=(6, 4))
-        ax1.plot(z_grid, P_prof, color="#ff3366", linewidth=2.5, label="Optical Power P(z)")
-        ax1.set_xlabel("Cavity Position z (μm)", color="white")
-        ax1.set_ylabel("Internal Power (W)", color="white")
-        ax1.grid(True, linestyle="--", alpha=0.3, color="#555555")
-        ax1.set_facecolor("#1e1e1e")
-        fig1.patch.set_facecolor("#0d1117")
-        ax1.tick_params(colors="white")
-        for spine in ax1.spines.values():
-            spine.set_color("#555555")
-        ax1.legend(facecolor="#121212", edgecolor="#555555", labelcolor="white")
-        st.pyplot(fig1)
+    # Column 1: Longitudinal Profiles (1D along cavity length)
+    with col_long:
+        st.subheader("1D Longitudinal")
         
-    # Plot 2: Carrier Density (Spatial Hole Burning)
-    with col_plot2:
-        st.subheader("📉 Spatial Hole Burning (Carrier Density)")
-        fig2, ax2 = plt.subplots(figsize=(6, 4))
-        ax2.plot(z_grid, N_prof / 1e18, color="#00ffcc", linewidth=2.5, label="Carrier Density N(z)")
-        ax2.set_xlabel("Cavity Position z (μm)", color="white")
-        ax2.set_ylabel("Carrier Density ($10^{18}$ cm$^{-3}$)", color="white")
-        ax2.grid(True, linestyle="--", alpha=0.3, color="#555555")
-        ax2.set_facecolor("#1e1e1e")
-        fig2.patch.set_facecolor("#0d1117")
-        ax2.tick_params(colors="white")
-        for spine in ax2.spines.values():
-            spine.set_color("#555555")
-        ax2.legend(facecolor="#121212", edgecolor="#555555", labelcolor="white")
-        st.pyplot(fig2)
+        # Plot 1: Carrier Density N(z)
+        fig_n, ax_n = plt.subplots(figsize=(4.5, 3.2))
+        ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
+        ax_n.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
+        ax_n.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
+        ax_n.set_ylabel("N (10^18 cm^-3)", color="#8b949e", fontsize=7.5)
+        ax_n.grid(True, linestyle="--", alpha=0.3, color="#555555")
+        ax_n.set_facecolor("#1e1e1e")
+        fig_n.patch.set_facecolor("#0d1117")
+        ax_n.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_n.spines.values():
+            spine.set_color("#30363d")
+        st.pyplot(fig_n)
+        
+        # Plot 2: Optical Power P(z)
+        fig_p, ax_p = plt.subplots(figsize=(4.5, 3.2))
+        ax_p.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0, label="P(z)")
+        ax_p.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
+        ax_p.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
+        ax_p.set_ylabel("Power (mW)", color="#8b949e", fontsize=7.5)
+        ax_p.grid(True, linestyle="--", alpha=0.3, color="#555555")
+        ax_p.set_facecolor("#1e1e1e")
+        fig_p.patch.set_facecolor("#0d1117")
+        ax_p.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_p.spines.values():
+            spine.set_color("#30363d")
+        st.pyplot(fig_p)
+
+    # Column 2: 2D Transverse Distributions
+    with col_trans2d:
+        st.subheader("2D Transverse")
+        
+        # 2D transverse grid
+        tx = np.linspace(-3.5, 3.5, 40)
+        ty = np.linspace(-2.0, 2.0, 40)
+        TX, TY = np.meshgrid(tx, ty)
+        
+        # Plot 3: 2D Mode intensity
+        fig_m2d, ax_m2d = plt.subplots(figsize=(4.5, 3.2))
+        norm_power = max(0.001, P_opt * 1000.0 / 250.0)
+        I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+        contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap="inferno")
+        ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
+        ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+        ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+        ax_m2d.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_m2d.spines.values():
+            spine.set_color("#30363d")
+        # Add active region waveguide bounds
+        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+        ax_m2d.add_patch(rect)
+        st.pyplot(fig_m2d)
+        
+        # Plot 4: 2D Temperature heat map
+        fig_t2d, ax_t2d = plt.subplots(figsize=(4.5, 3.2))
+        heating_power = max(0.0, I_total * 1.05 - P_opt)
+        delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
+        T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+        contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap="hot")
+        ax_t2d.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
+        ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+        ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+        ax_t2d.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_t2d.spines.values():
+            spine.set_color("#30363d")
+        st.pyplot(fig_t2d)
+
+    # Column 3: 1D Transverse Slices
+    with col_trans1d:
+        st.subheader("1D Transverse")
+        
+        # Plot 5: Horizontal slice
+        fig_sh, ax_sh = plt.subplots(figsize=(4.5, 3.2))
+        I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+        ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
+        ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+        ax_sh.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+        ax_sh.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+        ax_sh.grid(True, linestyle="--", alpha=0.3, color="#555555")
+        ax_sh.set_facecolor("#1e1e1e")
+        fig_sh.patch.set_facecolor("#0d1117")
+        ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_sh.spines.values():
+            spine.set_color("#30363d")
+        st.pyplot(fig_sh)
+        
+        # Plot 6: Vertical slice
+        fig_sv, ax_sv = plt.subplots(figsize=(4.5, 3.2))
+        I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+        ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
+        ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+        ax_sv.set_xlabel("y height (μm)", color="#8b949e", fontsize=7.5)
+        ax_sv.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+        ax_sv.grid(True, linestyle="--", alpha=0.3, color="#555555")
+        ax_sv.set_facecolor("#1e1e1e")
+        fig_sv.patch.set_facecolor("#0d1117")
+        ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_sv.spines.values():
+            spine.set_color("#30363d")
+        st.pyplot(fig_sv)
         
     # Row 3: Design Guidance / Physical Insight
     st.subheader("💡 Physical Insights & Design Guidance")
