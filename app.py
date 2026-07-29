@@ -27,9 +27,16 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS for dark-mode premium look
+    # Custom CSS for dark-mode premium look and layout compaction
     st.markdown("""
         <style>
+        [data-testid="stHeader"] {
+            display: none;
+        }
+        .block-container {
+            padding-top: 1.0rem !important;
+            padding-bottom: 0rem !important;
+        }
         .main {
             background-color: #0d1117;
             color: #c9d1d9;
@@ -40,6 +47,8 @@ def main():
         h1, h2, h3, h4 {
             color: #58a6ff !important;
             font-family: 'Outfit', sans-serif;
+            margin-top: 0px !important;
+            margin-bottom: 5px !important;
         }
         .metric-card {
             background-color: #1f242c;
@@ -131,7 +140,7 @@ def main():
     # Column 1: Longitudinal Profiles (1D along cavity length)
     with col_long:
         # Plot 1: Carrier Density N(z)
-        fig_n, ax_n = plt.subplots(figsize=(4.5, 3.2))
+        fig_n, ax_n = plt.subplots(figsize=(4.5, 2.3))
         ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
         ax_n.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
         ax_n.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
@@ -140,14 +149,14 @@ def main():
         ax_n.set_facecolor("#1e1e1e")
         fig_n.patch.set_facecolor("#0d1117")
         ax_n.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_n.set_box_aspect(0.65)
+        ax_n.set_box_aspect(0.48)
         for spine in ax_n.spines.values():
             spine.set_color("#30363d")
         fig_n.tight_layout()
         st.pyplot(fig_n)
         
         # Plot 2: Optical Power P(z)
-        fig_p, ax_p = plt.subplots(figsize=(4.5, 3.2))
+        fig_p, ax_p = plt.subplots(figsize=(4.5, 2.3))
         ax_p.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0, label="P(z)")
         ax_p.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
         ax_p.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
@@ -156,7 +165,7 @@ def main():
         ax_p.set_facecolor("#1e1e1e")
         fig_p.patch.set_facecolor("#0d1117")
         ax_p.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_p.set_box_aspect(0.65)
+        ax_p.set_box_aspect(0.48)
         for spine in ax_p.spines.values():
             spine.set_color("#30363d")
         fig_p.tight_layout()
@@ -172,7 +181,7 @@ def main():
         TX, TY = np.meshgrid(tx, ty)
         
         # Plot 3: 2D Mode intensity
-        fig_m2d, ax_m2d = plt.subplots(figsize=(4.5, 3.2))
+        fig_m2d, ax_m2d = plt.subplots(figsize=(4.5, 2.3))
         norm_power = max(0.001, P_opt * 1000.0 / 250.0)
         I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
         contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap="inferno")
@@ -180,7 +189,7 @@ def main():
         ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
         ax_m2d.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_m2d.set_box_aspect(0.65)
+        ax_m2d.set_box_aspect(0.48)
         for spine in ax_m2d.spines.values():
             spine.set_color("#30363d")
         # Add active region waveguide bounds
@@ -190,7 +199,7 @@ def main():
         st.pyplot(fig_m2d)
         
         # Plot 4: 2D Temperature heat map
-        fig_t2d, ax_t2d = plt.subplots(figsize=(4.5, 3.2))
+        fig_t2d, ax_t2d = plt.subplots(figsize=(4.5, 2.3))
         heating_power = max(0.0, I_total * 1.05 - P_opt)
         delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
         T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
@@ -199,7 +208,7 @@ def main():
         ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
         ax_t2d.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_t2d.set_box_aspect(0.65)
+        ax_t2d.set_box_aspect(0.48)
         for spine in ax_t2d.spines.values():
             spine.set_color("#30363d")
         fig_t2d.tight_layout()
@@ -210,7 +219,7 @@ def main():
     # Column 3: 1D Transverse Slices
     with col_trans1d:
         # Plot 5: Horizontal slice
-        fig_sh, ax_sh = plt.subplots(figsize=(4.5, 3.2))
+        fig_sh, ax_sh = plt.subplots(figsize=(4.5, 2.3))
         I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
         ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
         ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
@@ -220,14 +229,14 @@ def main():
         ax_sh.set_facecolor("#1e1e1e")
         fig_sh.patch.set_facecolor("#0d1117")
         ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_sh.set_box_aspect(0.65)
+        ax_sh.set_box_aspect(0.48)
         for spine in ax_sh.spines.values():
             spine.set_color("#30363d")
         fig_sh.tight_layout()
         st.pyplot(fig_sh)
         
         # Plot 6: Vertical slice
-        fig_sv, ax_sv = plt.subplots(figsize=(4.5, 3.2))
+        fig_sv, ax_sv = plt.subplots(figsize=(4.5, 2.3))
         I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
         ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
         ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
@@ -237,7 +246,7 @@ def main():
         ax_sv.set_facecolor("#1e1e1e")
         fig_sv.patch.set_facecolor("#0d1117")
         ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_sv.set_box_aspect(0.65)
+        ax_sv.set_box_aspect(0.48)
         for spine in ax_sv.spines.values():
             spine.set_color("#30363d")
         fig_sv.tight_layout()

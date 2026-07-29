@@ -44,6 +44,17 @@ except ImportError as e:
 
 # Setup paths
 PLASER_DIR = Path(__file__).resolve().parent
+
+# Preload Cisco OpenH264 DLL using ctypes to bypass Windows App Store Python sandboxing DLL loading restrictions
+dll_path = PLASER_DIR / "openh264-1.8.0-win64.dll"
+if dll_path.exists():
+    try:
+        import ctypes
+        ctypes.CDLL(str(dll_path))
+        print("Successfully preloaded Cisco OpenH264 DLL.")
+    except Exception as e:
+        print(f"Warning: Failed to preload OpenH264 DLL: {e}")
+
 surrogate = PINNSurrogate(PLASER_DIR)
 
 # Output video settings
@@ -52,8 +63,8 @@ fps = 15
 width, height = 1280, 720
 total_frames = 360  # 24 seconds at 15 FPS
 
-# Initialize OpenCV VideoWriter
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+# Initialize OpenCV VideoWriter with HTML5-compatible avc1 (H.264) codec
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 video = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
 
 if not video.isOpened():
@@ -350,13 +361,13 @@ for frame in range(total_frames):
     ax_vert_mode.tick_params(colors="#8892b0", labelsize=8)
     ax_vert_mode.set_ylim(0.0, 1.2)
 
-    # Enforce uniform box aspect ratio (0.65) on all 6 subplots
-    ax_carrier.set_box_aspect(0.65)
-    ax_optical.set_box_aspect(0.65)
-    ax_trans_mode.set_box_aspect(0.65)
-    ax_trans_temp.set_box_aspect(0.65)
-    ax_horiz_mode.set_box_aspect(0.65)
-    ax_vert_mode.set_box_aspect(0.65)
+    # Enforce uniform box aspect ratio (0.48) on all 6 subplots
+    ax_carrier.set_box_aspect(0.48)
+    ax_optical.set_box_aspect(0.48)
+    ax_trans_mode.set_box_aspect(0.48)
+    ax_trans_temp.set_box_aspect(0.48)
+    ax_horiz_mode.set_box_aspect(0.48)
+    ax_vert_mode.set_box_aspect(0.48)
 
     # Figure headers, descriptions, and dynamic unified status banner
     fig.texts.clear() # Clear overlays from previous frames
