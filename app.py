@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 import streamlit as st
 
 # Setup paths
@@ -21,6 +22,10 @@ TOOLS_DIR = REPO_DIR / "Tools"
 from pinn_surrogate import PINNSurrogate
 
 def main():
+    # Define uniform dark blue plot style colormaps
+    cmap_mode = LinearSegmentedColormap.from_list("mode_cmap", ["#172a45", "#4e1b6f", "#9e2a2b", "#ff9f1c", "#ffffff"])
+    cmap_temp = LinearSegmentedColormap.from_list("temp_cmap", ["#172a45", "#990000", "#ff5500", "#ffcc00", "#ffffff"])
+
     st.set_page_config(
         page_title="PLaser Designer",
         layout="wide",
@@ -153,7 +158,7 @@ def main():
         for spine in ax_n.spines.values():
             spine.set_color("#30363d")
         fig_n.tight_layout()
-        st.pyplot(fig_n)
+        st.pyplot(fig_n, use_container_width=True)
         
         # Plot 2: Optical Power P(z)
         fig_p, ax_p = plt.subplots(figsize=(4.5, 2.3))
@@ -169,7 +174,7 @@ def main():
         for spine in ax_p.spines.values():
             spine.set_color("#30363d")
         fig_p.tight_layout()
-        st.pyplot(fig_p)
+        st.pyplot(fig_p, use_container_width=True)
 
     # Column 2: 2D Transverse Distributions
     with col_trans2d:
@@ -182,7 +187,7 @@ def main():
         fig_m2d, ax_m2d = plt.subplots(figsize=(4.5, 2.3))
         norm_power = max(0.001, P_opt * 1000.0 / 250.0)
         I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
-        contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap="inferno")
+        contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
         ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
         ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -197,14 +202,14 @@ def main():
         ax_m2d.add_patch(rect)
         ax_m2d.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
         fig_m2d.tight_layout()
-        st.pyplot(fig_m2d)
+        st.pyplot(fig_m2d, use_container_width=True)
         
         # Plot 4: 2D Temperature heat map
         fig_t2d, ax_t2d = plt.subplots(figsize=(4.5, 2.3))
         heating_power = max(0.0, I_total * 1.05 - P_opt)
         delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
         T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
-        contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap="hot")
+        contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
         ax_t2d.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
         ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -217,7 +222,7 @@ def main():
         ax_t2d.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
         ax_t2d.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
         fig_t2d.tight_layout()
-        st.pyplot(fig_t2d)
+        st.pyplot(fig_t2d, use_container_width=True)
 
     # Column 3: 1D Transverse Slices
     with col_trans1d:
@@ -236,7 +241,7 @@ def main():
         for spine in ax_sh.spines.values():
             spine.set_color("#30363d")
         fig_sh.tight_layout()
-        st.pyplot(fig_sh)
+        st.pyplot(fig_sh, use_container_width=True)
         
         # Plot 6: Vertical slice
         fig_sv, ax_sv = plt.subplots(figsize=(4.5, 2.3))
@@ -253,7 +258,7 @@ def main():
         for spine in ax_sv.spines.values():
             spine.set_color("#30363d")
         fig_sv.tight_layout()
-        st.pyplot(fig_sv)
+        st.pyplot(fig_sv, use_container_width=True)
         
     # Row 3: Design Guidance / Physical Insight
     st.subheader("💡 Physical Insights & Design Guidance")

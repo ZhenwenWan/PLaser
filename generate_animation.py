@@ -15,6 +15,7 @@ try:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap
     import cv2
 except ImportError as e:
     print(f"Dependency Error: {e}")
@@ -56,6 +57,10 @@ if dll_path.exists():
         print(f"Warning: Failed to preload OpenH264 DLL: {e}")
 
 surrogate = PINNSurrogate(PLASER_DIR)
+
+# Define uniform dark blue plot style colormaps
+cmap_mode = LinearSegmentedColormap.from_list("mode_cmap", ["#172a45", "#4e1b6f", "#9e2a2b", "#ff9f1c", "#ffffff"])
+cmap_temp = LinearSegmentedColormap.from_list("temp_cmap", ["#172a45", "#990000", "#ff5500", "#ffcc00", "#ffffff"])
 
 # Output video settings
 video_path = PLASER_DIR / "PLaser_Demonstration.mp4"
@@ -302,7 +307,7 @@ for frame in range(total_frames):
     # Fundamental transverse mode profile (1.8 um horizontal width, 0.6 um vertical height)
     I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
     
-    contour_m = ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap="inferno", vmin=0, vmax=1.2)
+    contour_m = ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
     ax_trans_mode.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
     ax_trans_mode.set_ylabel("height y (μm)", color="#8892b0", fontsize=8)
     ax_trans_mode.tick_params(colors="#8892b0", labelsize=8)
@@ -326,7 +331,7 @@ for frame in range(total_frames):
     # Heat generated in active region near y = 0
     T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
     
-    contour_t = ax_trans_temp.contourf(TX, TY, T_trans, levels=15, cmap="hot", vmin=250.0, vmax=385.0)
+    contour_t = ax_trans_temp.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
     ax_trans_temp.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
     ax_trans_temp.set_ylabel("height y (μm)", color="#8892b0", fontsize=8)
     ax_trans_temp.tick_params(colors="#8892b0", labelsize=8)
