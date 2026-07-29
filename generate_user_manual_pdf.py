@@ -243,7 +243,7 @@ with PdfPages(str(output_pdf_path)) as pdf:
     
     # Embed annotated dashboard screenshot
     embed_image(fig, assets_dir / "dashboard_annotated.png", 0.05, 0.49, 0.90, 0.25)
-    ax.text(0.5, 0.47, "Figure 3.1: Annotated PLaser web application interface showing sliders and live metrics.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
+    ax.text(0.5, 0.47, "Figure 3.1: PLaser web application interface showing sliders and live metrics.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
     
     y = 0.43
     ax.text(0.05, y, "3.2 Understanding Spatial Hole Burning (SHB)", color=ACCENT_GREEN, fontsize=11, fontweight="bold")

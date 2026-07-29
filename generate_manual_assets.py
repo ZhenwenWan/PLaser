@@ -249,35 +249,6 @@ def annotate_dashboard_screenshot(output_dir, plaser_dir):
     ax.imshow(img)
     ax.axis('off')
     
-    # Add overlay callouts
-    # Resolution of video is 1280x720. 
-    # Mappings of coordinates in matplotlib (0,0 is bottom left, or pixel coordinates)
-    # We'll use pixel coordinate systems
-    
-    # 1. LIVE PARAMETERS
-    rect1 = plt.Rectangle((50, 480), 550, 180, fill=False, edgecolor=ACCENT_GREEN, lw=2.5, ls='--')
-    ax.add_patch(rect1)
-    ax.text(320, 680, "1. Live Parameter Sliders\n(Controls swept in real-time)", color=ACCENT_GREEN, fontsize=10.5, 
-            fontweight='bold', bbox=dict(facecolor=BG_COLOR, edgecolor=ACCENT_GREEN, alpha=0.95), ha='center')
-            
-    # 2. PERFORMANCE METRICS
-    rect2 = plt.Rectangle((680, 480), 550, 180, fill=False, edgecolor=ACCENT_GREEN, lw=2.5, ls='--')
-    ax.add_patch(rect2)
-    ax.text(950, 680, "2. Global Output Gauges\n(Live power, WPE, status)", color=ACCENT_GREEN, fontsize=10.5, 
-            fontweight='bold', bbox=dict(facecolor=BG_COLOR, edgecolor=ACCENT_GREEN, alpha=0.95), ha='center')
-            
-    # 3. CARRIER DENSITY
-    rect3 = plt.Rectangle((50, 50), 550, 380, fill=False, edgecolor=ACCENT_GREEN, lw=2.5, ls='--')
-    ax.add_patch(rect3)
-    ax.text(320, 20, "3. Spatial Hole Burning Profile N(z)\n(Displays spatial carrier clamping)", color=ACCENT_GREEN, fontsize=10.5, 
-            fontweight='bold', bbox=dict(facecolor=BG_COLOR, edgecolor=ACCENT_GREEN, alpha=0.95), ha='center')
-            
-    # 4. OPTICAL FIELD
-    rect4 = plt.Rectangle((680, 50), 550, 380, fill=False, edgecolor=ACCENT_GREEN, lw=2.5, ls='--')
-    ax.add_patch(rect4)
-    ax.text(950, 20, "4. Internal Optical Field P(z)\n(Displays wave growth along cavity)", color=ACCENT_GREEN, fontsize=10.5, 
-            fontweight='bold', bbox=dict(facecolor=BG_COLOR, edgecolor=ACCENT_GREEN, alpha=0.95), ha='center')
-            
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
     plt.savefig(output_dir / "dashboard_annotated.png", dpi=150, bbox_inches='tight', pad_inches=0)
     plt.close()

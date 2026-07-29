@@ -170,8 +170,6 @@ def main():
             spine.set_color("#30363d")
         fig_p.tight_layout()
         st.pyplot(fig_p)
-        
-        st.subheader("1D Longitudinal")
 
     # Column 2: 2D Transverse Distributions
     with col_trans2d:
@@ -195,6 +193,7 @@ def main():
         # Add active region waveguide bounds
         rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
         ax_m2d.add_patch(rect)
+        ax_m2d.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
         fig_m2d.tight_layout()
         st.pyplot(fig_m2d)
         
@@ -211,10 +210,10 @@ def main():
         ax_t2d.set_box_aspect(0.48)
         for spine in ax_t2d.spines.values():
             spine.set_color("#30363d")
+        ax_t2d.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
+        ax_t2d.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
         fig_t2d.tight_layout()
         st.pyplot(fig_t2d)
-        
-        st.subheader("2D Transverse")
 
     # Column 3: 1D Transverse Slices
     with col_trans1d:
@@ -251,8 +250,6 @@ def main():
             spine.set_color("#30363d")
         fig_sv.tight_layout()
         st.pyplot(fig_sv)
-        
-        st.subheader("1D Transverse")
         
     # Row 3: Design Guidance / Physical Insight
     st.subheader("💡 Physical Insights & Design Guidance")

@@ -332,8 +332,8 @@ for frame in range(total_frames):
     ax_trans_temp.tick_params(colors="#8892b0", labelsize=8)
 
     # Heat sink bottom line label
-    ax_trans_temp.axhline(y=-2.0, color="#64ffda", linestyle="-", linewidth=1.2, alpha=0.8)
-    ax_trans_temp.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="#64ffda", fontsize=6.5, ha="center", fontweight="bold")
+    ax_trans_temp.axhline(y=-2.0, color="#ffffff", linestyle="-", linewidth=1.2, alpha=0.8)
+    ax_trans_temp.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="#ffffff", fontsize=6.5, ha="center", fontweight="bold")
 
     # ----------------------------------------------------
     # Subplot 5: Horizontal Cut Mode Profile
@@ -379,11 +379,6 @@ for frame in range(total_frames):
     # Dynamic status overlay for live parameters and metrics
     status_text = f"PARAMETERS: R1={r1:.2f} | R2={r2:.2f} | L={L:.0f} μm | T0={T0:.1f} K | I_act={I_active:.3f} A    ===    METRICS: Power={P_opt_mw:.1f} mW | WPE={WPE_pct:.2f}% | Current={I_total:.3f} A | State: {state}"
     fig.text(0.5, 0.86, status_text, color="#64ffda", fontsize=9.5, fontweight="bold", ha="center", bbox=dict(facecolor="#172a45", edgecolor="#233554", boxstyle="round,pad=0.4"))
-
-    # Column captions placed at the bottom of the figure
-    fig.text(0.20, 0.04, "1D Longitudinal", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
-    fig.text(0.50, 0.04, "2D Transverse", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
-    fig.text(0.80, 0.04, "1D Transverse", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
 
     write_frame_to_video()
     
