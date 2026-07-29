@@ -61,8 +61,7 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    st.title("⚡ PLaser Designer")
-    st.write("Real-Time Parametric Telecom Diode Laser Design Simulator (PLaser) powered by Physics-Informed Neural Networks (PINN).")
+    st.markdown("<h3 style='margin: 0; padding-top: 10px; color: #58a6ff; font-family: \"Outfit\", sans-serif;'>⚡ PLaser Designer</h3>", unsafe_allow_html=True)
     
     # Load the model
     @st.cache_resource
@@ -131,8 +130,6 @@ def main():
     
     # Column 1: Longitudinal Profiles (1D along cavity length)
     with col_long:
-        st.subheader("1D Longitudinal")
-        
         # Plot 1: Carrier Density N(z)
         fig_n, ax_n = plt.subplots(figsize=(4.5, 3.2))
         ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
@@ -143,8 +140,10 @@ def main():
         ax_n.set_facecolor("#1e1e1e")
         fig_n.patch.set_facecolor("#0d1117")
         ax_n.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_n.set_box_aspect(0.65)
         for spine in ax_n.spines.values():
             spine.set_color("#30363d")
+        fig_n.tight_layout()
         st.pyplot(fig_n)
         
         # Plot 2: Optical Power P(z)
@@ -157,14 +156,16 @@ def main():
         ax_p.set_facecolor("#1e1e1e")
         fig_p.patch.set_facecolor("#0d1117")
         ax_p.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_p.set_box_aspect(0.65)
         for spine in ax_p.spines.values():
             spine.set_color("#30363d")
+        fig_p.tight_layout()
         st.pyplot(fig_p)
+        
+        st.subheader("1D Longitudinal")
 
     # Column 2: 2D Transverse Distributions
     with col_trans2d:
-        st.subheader("2D Transverse")
-        
         # 2D transverse grid
         tx = np.linspace(-3.5, 3.5, 40)
         ty = np.linspace(-2.0, 2.0, 40)
@@ -179,11 +180,13 @@ def main():
         ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
         ax_m2d.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_m2d.set_box_aspect(0.65)
         for spine in ax_m2d.spines.values():
             spine.set_color("#30363d")
         # Add active region waveguide bounds
         rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
         ax_m2d.add_patch(rect)
+        fig_m2d.tight_layout()
         st.pyplot(fig_m2d)
         
         # Plot 4: 2D Temperature heat map
@@ -196,14 +199,16 @@ def main():
         ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
         ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
         ax_t2d.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_t2d.set_box_aspect(0.65)
         for spine in ax_t2d.spines.values():
             spine.set_color("#30363d")
+        fig_t2d.tight_layout()
         st.pyplot(fig_t2d)
+        
+        st.subheader("2D Transverse")
 
     # Column 3: 1D Transverse Slices
     with col_trans1d:
-        st.subheader("1D Transverse")
-        
         # Plot 5: Horizontal slice
         fig_sh, ax_sh = plt.subplots(figsize=(4.5, 3.2))
         I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
@@ -215,8 +220,10 @@ def main():
         ax_sh.set_facecolor("#1e1e1e")
         fig_sh.patch.set_facecolor("#0d1117")
         ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_sh.set_box_aspect(0.65)
         for spine in ax_sh.spines.values():
             spine.set_color("#30363d")
+        fig_sh.tight_layout()
         st.pyplot(fig_sh)
         
         # Plot 6: Vertical slice
@@ -230,9 +237,13 @@ def main():
         ax_sv.set_facecolor("#1e1e1e")
         fig_sv.patch.set_facecolor("#0d1117")
         ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_sv.set_box_aspect(0.65)
         for spine in ax_sv.spines.values():
             spine.set_color("#30363d")
+        fig_sv.tight_layout()
         st.pyplot(fig_sv)
+        
+        st.subheader("1D Transverse")
         
     # Row 3: Design Guidance / Physical Insight
     st.subheader("💡 Physical Insights & Design Guidance")

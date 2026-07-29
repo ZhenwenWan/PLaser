@@ -96,8 +96,8 @@ plt.style.use('dark_background')
 fig = plt.figure(figsize=(16, 9), facecolor="#0a192f")
 
 # GridSpec for clean 2x3 layout
-# Columns: [0: Longitudinal Profiles, 1: Transverse Viewports, 2: Controls & Metrics]
-gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.28, left=0.06, right=0.94, top=0.88, bottom=0.08)
+# Columns: [0: Longitudinal Profiles, 1: Transverse Viewports, 2: 1D Transverse Slices]
+gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.28, left=0.06, right=0.94, top=0.84, bottom=0.10)
 
 # Create Subplots
 ax_carrier = fig.add_subplot(gs[0, 0], facecolor="#172a45")
@@ -106,11 +106,8 @@ ax_optical = fig.add_subplot(gs[1, 0], facecolor="#172a45")
 ax_trans_mode = fig.add_subplot(gs[0, 1], facecolor="#172a45")
 ax_trans_temp = fig.add_subplot(gs[1, 1], facecolor="#172a45")
 
-ax_params = fig.add_subplot(gs[0, 2], facecolor="#172a45")
-ax_metrics = fig.add_subplot(gs[1, 2], facecolor="#172a45")
-
-# Inset plot for power trend inside ax_metrics area
-ax_mini = fig.add_axes([0.725, 0.11, 0.20, 0.11], facecolor="#0a192f")
+ax_horiz_mode = fig.add_subplot(gs[0, 2], facecolor="#172a45")
+ax_vert_mode = fig.add_subplot(gs[1, 2], facecolor="#172a45")
 
 z_grid = np.linspace(0, 100, 51)  # Normalised z grid (%)
 power_history = []
@@ -145,12 +142,13 @@ for frame in range(total_frames):
     # Title Slides (Opening & Closing)
     if frame < 30 or frame >= 345:
         # Clear all main subplots
-        for ax in [ax_params, ax_metrics, ax_carrier, ax_optical, ax_mini, ax_trans_mode, ax_trans_temp]:
+        for ax in [ax_horiz_mode, ax_vert_mode, ax_carrier, ax_optical, ax_trans_mode, ax_trans_temp]:
             ax.clear()
             ax.axis("off")
             ax.set_facecolor("#0a192f")
             
         fig.patch.set_facecolor("#0a192f")
+        fig.texts.clear()
         
         if frame < 30:
             # Opening Slide
@@ -164,7 +162,7 @@ for frame in range(total_frames):
             fig.text(0.5, 0.52, "Discovered Optimized Cavity Configuration:", color="#ffffff", fontsize=16, fontweight="bold", ha="center")
             fig.text(0.5, 0.44, "R1 = 0.90 (HR)  |  R2 = 0.30 (Cleaved)  |  L = 300 um  |  T0 = 250 K", color="#64ffda", fontsize=15, ha="center")
             fig.text(0.5, 0.36, "Physics-Informed Neural Network Surrogate  |  1,000,000x Speedup", color="#8892b0", fontsize=12, ha="center")
-            fig.text(0.5, 0.28, "Contact: Zhenwen Wan (AI + Simulation Expert)", color="#8892b0", fontsize=10, ha="center")
+            fig.text(0.5, 0.28, "Contact: Zhenwen Wan (Simulation Expert)", color="#8892b0", fontsize=10, ha="center")
             
         write_frame_to_video()
         continue
@@ -175,15 +173,15 @@ for frame in range(total_frames):
     ax_optical.set_facecolor("#172a45")
     ax_trans_mode.set_facecolor("#172a45")
     ax_trans_temp.set_facecolor("#172a45")
-    ax_params.set_facecolor("#172a45")
-    ax_metrics.set_facecolor("#172a45")
+    ax_horiz_mode.set_facecolor("#172a45")
+    ax_vert_mode.set_facecolor("#172a45")
     
     ax_carrier.axis("on")
     ax_optical.axis("on")
     ax_trans_mode.axis("on")
     ax_trans_temp.axis("on")
-    ax_params.axis("on")
-    ax_metrics.axis("on")
+    ax_horiz_mode.axis("on")
+    ax_vert_mode.axis("on")
 
     # Get sweep parameters
     r1 = r1_seq[frame]
@@ -327,80 +325,54 @@ for frame in range(total_frames):
     ax_trans_temp.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="#64ffda", fontsize=6.5, ha="center", fontweight="bold")
 
     # ----------------------------------------------------
-    # Subplot 5: Design Parameter Progress Sliders
+    # Subplot 5: Horizontal Cut Mode Profile
     # ----------------------------------------------------
-    ax_params.clear()
-    ax_params.set_title("LIVE PARAMETER CONTROLS", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    ax_params.set_xlim(0, 100)
-    ax_params.set_ylim(-0.5, 4.5)
-    ax_params.axis("off")
-    
-    labels = [
-        f"Rear Reflectivity (R1): {r1:.2f}",
-        f"Front Reflectivity (R2): {r2:.2f}",
-        f"Cavity Length (L): {L:.0f} um",
-        f"Ambient Temp (T0): {T0:.1f} K",
-        f"Active Current (I_act): {I_active:.3f} A"
-    ]
-    vals_pct = [
-        (r1 - 0.70) / 0.25 * 100.0,
-        (r2 - 0.05) / 0.45 * 100.0,
-        (L - 100.0) / 900.0 * 100.0,
-        (T0 - 250.0) / 110.0 * 100.0,
-        (I_active - 0.01) / 0.49 * 100.0
-    ]
-    
-    for i in range(5):
-        # Draw background progress bar track
-        rect_bg = plt.Rectangle((32, i - 0.15), 62, 0.3, facecolor="#0a192f", edgecolor="#233554")
-        ax_params.add_patch(rect_bg)
-        # Draw active slider filling
-        color = "#64ffda" if i == active_idx else "#8892b0"
-        if i == 3 and T0 > 300.0:
-            color = "#ff7b72"
-        rect_act = plt.Rectangle((32, i - 0.15), vals_pct[i] * 0.62, 0.3, facecolor=color)
-        ax_params.add_patch(rect_act)
-        # Render text labels safely without overlap
-        ax_params.text(30, i, labels[i], color="#ffffff" if i == active_idx else "#8892b0", fontsize=8, ha="right", va="center", fontweight="bold" if i == active_idx else "normal")
+    ax_horiz_mode.clear()
+    ax_horiz_mode.set_title("HORIZONTAL MODE CUT |Ψ(x,0)|²", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
+    I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+    ax_horiz_mode.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0)
+    ax_horiz_mode.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
+    ax_horiz_mode.set_ylabel("Intensity", color="#8892b0", fontsize=8)
+    ax_horiz_mode.grid(True, color="#233554", linestyle="--", linewidth=0.5)
+    ax_horiz_mode.tick_params(colors="#8892b0", labelsize=8)
+    ax_horiz_mode.set_ylim(0.0, 1.2)
 
     # ----------------------------------------------------
-    # Subplot 6: Performance Metrics Dashboard
+    # Subplot 6: Vertical Cut Mode Profile
     # ----------------------------------------------------
-    ax_metrics.clear()
-    ax_metrics.set_title("GLOBAL PERFORMANCE METRICS", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    ax_metrics.set_xlim(0, 10)
-    ax_metrics.set_ylim(0, 10)
-    ax_metrics.axis("off")
-    
-    # State Banner
-    rect_state = plt.Rectangle((0.5, 7.3), 9.0, 2.0, facecolor="#0a192f", edgecolor="#233554", linewidth=1.5)
-    ax_metrics.add_patch(rect_state)
-    ax_metrics.text(5.0, 8.6, "DEVICE LASING STATE", color="#8892b0", fontsize=7.5, fontweight="bold", ha="center")
-    ax_metrics.text(5.0, 7.8, state, color=state_color, fontsize=10, fontweight="bold", ha="center")
-    
-    # Performance metric values
-    ax_metrics.text(0.5, 5.0, "OPTICAL POWER", color="#8892b0", fontsize=8.5, fontweight="bold")
-    ax_metrics.text(0.5, 3.8, f"{P_opt_mw:.1f} mW", color="#64ffda", fontsize=15, fontweight="bold")
-    
-    ax_metrics.text(5.0, 5.0, "WPE (%)", color="#8892b0", fontsize=8.5, fontweight="bold")
-    ax_metrics.text(5.0, 3.8, f"{WPE_pct:.2f} %", color="#64ffda", fontsize=15, fontweight="bold")
-    
-    ax_metrics.text(0.5, 2.3, "TERMINAL CURRENT", color="#8892b0", fontsize=8.5, fontweight="bold")
-    ax_metrics.text(0.5, 1.4, f"{I_total:.3f} A", color="#ffffff", fontsize=11, fontweight="bold")
-    
-    # Draw small live trajectory line inside the metric panel
-    ax_mini.clear()
-    ax_mini.set_facecolor("#0a192f")
-    ax_mini.plot(power_history, color="#64ffda", linewidth=1.5)
-    ax_mini.set_title("Power Trend (mW)", color="#8892b0", fontsize=7.0)
-    ax_mini.tick_params(left=False, labelleft=False, bottom=False, labelbottom=False)
-    ax_mini.grid(True, color="#233554", linestyle=":", linewidth=0.5)
+    ax_vert_mode.clear()
+    ax_vert_mode.set_title("VERTICAL MODE CUT |Ψ(0,y)|²", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
+    I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+    ax_vert_mode.plot(ty, I_vert, color="#ff33cc", linewidth=2.0)
+    ax_vert_mode.set_xlabel("height y (μm)", color="#8892b0", fontsize=8)
+    ax_vert_mode.set_ylabel("Intensity", color="#8892b0", fontsize=8)
+    ax_vert_mode.grid(True, color="#233554", linestyle="--", linewidth=0.5)
+    ax_vert_mode.tick_params(colors="#8892b0", labelsize=8)
+    ax_vert_mode.set_ylim(0.0, 1.2)
 
-    # Figure headers and descriptions
+    # Enforce uniform box aspect ratio (0.65) on all 6 subplots
+    ax_carrier.set_box_aspect(0.65)
+    ax_optical.set_box_aspect(0.65)
+    ax_trans_mode.set_box_aspect(0.65)
+    ax_trans_temp.set_box_aspect(0.65)
+    ax_horiz_mode.set_box_aspect(0.65)
+    ax_vert_mode.set_box_aspect(0.65)
+
+    # Figure headers, descriptions, and dynamic unified status banner
+    fig.texts.clear() # Clear overlays from previous frames
     fig.suptitle(phase_title, color="#64ffda", fontsize=16, fontweight="bold", y=0.96)
     fig.text(0.5, 0.91, phase_desc, color="#ffffff", fontsize=10.0, ha="center")
     fig.text(0.94, 0.96, f"Frame {frame+1}/{total_frames}", color="#8892b0", fontsize=9, ha="right")
     fig.text(0.06, 0.96, "PLaser 1D-2D MULTIPHYSICS SIMULATOR", color="#ffffff", fontsize=11, fontweight="bold")
+
+    # Dynamic status overlay for live parameters and metrics
+    status_text = f"PARAMETERS: R1={r1:.2f} | R2={r2:.2f} | L={L:.0f} μm | T0={T0:.1f} K | I_act={I_active:.3f} A    ===    METRICS: Power={P_opt_mw:.1f} mW | WPE={WPE_pct:.2f}% | Current={I_total:.3f} A | State: {state}"
+    fig.text(0.5, 0.86, status_text, color="#64ffda", fontsize=9.5, fontweight="bold", ha="center", bbox=dict(facecolor="#172a45", edgecolor="#233554", boxstyle="round,pad=0.4"))
+
+    # Column captions placed at the bottom of the figure
+    fig.text(0.20, 0.04, "1D Longitudinal", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
+    fig.text(0.50, 0.04, "2D Transverse", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
+    fig.text(0.80, 0.04, "1D Transverse", color="#64ffda", fontsize=11, fontweight="bold", ha="center")
 
     write_frame_to_video()
     
