@@ -2,8 +2,8 @@
 """
 Generate a high-fidelity MP4 demonstration video for PLaser.
 Sweeps design parameters in real-time and visualizes multiphysics steady states.
-Includes longitudinal profiles AND 2D transverse distribution viewports (Optical Mode, Temperature).
-Uses Matplotlib for rendering a dark-themed dashboard and OpenCV for compiling the MP4.
+Simulates the entire Streamlit interface (sidebar controller + viewports).
+Demos both View Modes: Multi-Physics Dashboard and 3D Cavity Field Analyzer.
 """
 
 import sys
@@ -46,7 +46,7 @@ except ImportError as e:
 # Setup paths
 PLASER_DIR = Path(__file__).resolve().parent
 
-# Preload Cisco OpenH264 DLL using ctypes to bypass Windows App Store Python sandboxing DLL loading restrictions
+# Preload Cisco OpenH264 DLL using ctypes
 dll_path = PLASER_DIR / "openh264-1.8.0-win64.dll"
 if dll_path.exists():
     try:
@@ -76,67 +76,68 @@ if not video.isOpened():
     print(f"Error: Failed to open OpenCV VideoWriter for writing at {video_path}")
     sys.exit(1)
 
-print(f"Generating animation with transverse viewports ({total_frames} frames)...")
+print(f"Generating animation simulating the entire UI ({total_frames} frames)...")
 
-# Define Sweep Profiles (360 frames total)
-# Segment 1: Opening Title (Frames 0 to 30) - Static initial state
-# Segment 2: Reflectivity R2 sweep (Frames 30 to 135) - R2: 0.05 -> 0.50 -> 0.05
-# Segment 3: Current sweep (Frames 135 to 240) - Current: 0.01A -> 0.50A -> 0.01A
-# Segment 4: Temperature sweep (Frames 240 to 345) - Temp: 250K -> 360K -> 250K
-# Segment 5: Closing slide (Frames 345 to 360) - Static best design
-
+# Define Sweep Sequences
+# Dashboard Mode: frames 0 to 180
+# 3D Cavity Analyzer Mode: frames 180 to 360
 r1_seq = np.ones(total_frames) * 0.90
-r2_seq = np.ones(total_frames) * 0.30
+r2_seq = np.ones(total_frames) * 0.05
 L_seq = np.ones(total_frames) * 300.0
 T0_seq = np.ones(total_frames) * 300.0
-I_seq = np.ones(total_frames) * 0.18
+I_seq = np.ones(total_frames) * 0.13
 
-# Segment 2 (Reflectivity Sweep: 105 frames): R2 sweeps 0.05 -> 0.50 -> 0.05
-r2_seq[30:82] = np.linspace(0.05, 0.50, 52)
-r2_seq[82:135] = np.linspace(0.50, 0.05, 53)
+# Sweep R2 (Frames 30 to 80): 0.05 -> 0.45 -> 0.05
+r2_seq[30:55] = np.linspace(0.05, 0.45, 25)
+r2_seq[55:80] = np.linspace(0.45, 0.05, 25)
 
-# Segment 3 (Current Sweep: 105 frames): I_active sweeps 0.01 -> 0.50 -> 0.01
-# R2 fixed at 0.05 during this to show strong asymmetric Spatial Hole Burning
-r2_seq[135:] = 0.05
-I_seq[135:187] = np.linspace(0.01, 0.50, 52)
-I_seq[187:240] = np.linspace(0.50, 0.01, 53)
+# Sweep Current (Frames 80 to 130): 0.13A -> 0.50A -> 0.13A
+I_seq[80:105] = np.linspace(0.13, 0.50, 25)
+I_seq[105:130] = np.linspace(0.50, 0.13, 25)
 
-# Segment 4 (Temperature Sweep: 105 frames): T0 sweeps 250 -> 360 -> 250
-# Current fixed at 0.25A to show clear lasing state before thermal roll-off
-I_seq[240:] = 0.25
-T0_seq[240:292] = np.linspace(250.0, 360.0, 52)
-T0_seq[292:345] = np.linspace(360.0, 250.0, 53)
+# Sweep Temperature (Frames 130 to 180): 300K -> 360K -> 300K
+T0_seq[130:155] = np.linspace(300.0, 360.0, 25)
+T0_seq[155:180] = np.linspace(360.0, 300.0, 25)
 
-# Setup Matplotlib Figure
+# z-Slice selection sequence for Analyzer Mode (Frames 180 to 360)
+# z sweeps: 300um -> 0um (frames 200 to 275) -> 300um (frames 275 to 350)
+z_seq = np.ones(total_frames) * 300.0
+z_seq[200:275] = np.linspace(300.0, 0.0, 75)
+z_seq[275:350] = np.linspace(0.0, 300.0, 75)
+
+# Setup Matplotlib Figure mimicking the Streamlit dark theme
 plt.style.use('dark_background')
-fig = plt.figure(figsize=(16, 9), facecolor="#0a192f")
+fig = plt.figure(figsize=(16, 9), facecolor="#0d1117")
 
-# GridSpec for clean 2x3 layout
-# Columns: [0: Longitudinal Profiles, 1: Transverse Viewports, 2: 1D Transverse Slices]
-gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.28, left=0.06, right=0.94, top=0.84, bottom=0.10)
+# Sidebar axes (left dashboard)
+ax_sidebar = fig.add_axes([0, 0, 0.22, 1.0], facecolor="#161b22")
+ax_sidebar.axis("off")
 
-# Create Subplots
-ax_carrier = fig.add_subplot(gs[0, 0], facecolor="#172a45")
-ax_optical = fig.add_subplot(gs[1, 0], facecolor="#172a45")
+# Dashboard viewports (visible in dashboard mode)
+ax_carrier = fig.add_axes([0.25, 0.50, 0.22, 0.28], facecolor="#172a45")
+ax_optical = fig.add_axes([0.25, 0.14, 0.22, 0.28], facecolor="#172a45")
 
-ax_trans_mode = fig.add_subplot(gs[0, 1], facecolor="#172a45")
-ax_trans_temp = fig.add_subplot(gs[1, 1], facecolor="#172a45")
+ax_trans_mode = fig.add_axes([0.49, 0.50, 0.22, 0.28], facecolor="#172a45")
+ax_trans_temp = fig.add_axes([0.49, 0.14, 0.22, 0.28], facecolor="#172a45")
 
-ax_horiz_mode = fig.add_subplot(gs[0, 2], facecolor="#172a45")
-ax_vert_mode = fig.add_subplot(gs[1, 2], facecolor="#172a45")
+ax_horiz_mode = fig.add_axes([0.73, 0.50, 0.22, 0.28], facecolor="#172a45")
+ax_vert_mode = fig.add_axes([0.73, 0.14, 0.22, 0.28], facecolor="#172a45")
 
-z_grid = np.linspace(0, 100, 51)  # Normalised z grid (%)
-power_history = []
+# 3D Analyzer viewports (visible in analyzer mode)
+ax_m2d_z = fig.add_axes([0.25, 0.50, 0.33, 0.28], facecolor="#172a45")
+ax_t2d_z = fig.add_axes([0.61, 0.50, 0.33, 0.28], facecolor="#172a45")
 
-# Setup 2D transverse grid for viewports
-tx = np.linspace(-3.5, 3.5, 50)
-ty = np.linspace(-2.0, 2.0, 50)
+ax_3d_m = fig.add_axes([0.25, 0.10, 0.33, 0.28], projection="3d", facecolor="#0d1117")
+ax_3d_t = fig.add_axes([0.61, 0.10, 0.33, 0.28], projection="3d", facecolor="#0d1117")
+
+# Grids and coordinates
+z_grid_percent = np.linspace(0, 100, 51)
+tx = np.linspace(-3.5, 3.5, 40)
+ty = np.linspace(-2.0, 2.0, 40)
 TX, TY = np.meshgrid(tx, ty)
 
 def write_frame_to_video():
-    # Render frame to canvas
     fig.canvas.draw()
-    # Convert RGBA buffer to BGR numpy array
     try:
         if hasattr(fig.canvas, 'buffer_rgba'):
             img = np.asarray(fig.canvas.buffer_rgba())
@@ -153,51 +154,17 @@ def write_frame_to_video():
     img_bgr = cv2.resize(img_bgr, (width, height))
     video.write(img_bgr)
 
-# Render Video Loop
+# Render Loop
 for frame in range(total_frames):
-    # Title Slides (Opening & Closing)
-    if frame < 30 or frame >= 345:
-        # Clear all main subplots
-        for ax in [ax_horiz_mode, ax_vert_mode, ax_carrier, ax_optical, ax_trans_mode, ax_trans_temp]:
-            ax.clear()
-            ax.axis("off")
-            ax.set_facecolor("#0a192f")
-            
-        fig.patch.set_facecolor("#0a192f")
-        fig.texts.clear()
-        
-        if frame < 30:
-            # Opening Slide
-            fig.suptitle("PLaser MULTIPHYSICS DESIGN SUITE", color="#64ffda", fontsize=34, fontweight="bold", y=0.65)
-            fig.text(0.5, 0.52, "Coupled 1D-Longitudinal & 2D-Transverse Real-Time PINN Simulator", color="#ffffff", fontsize=16, fontweight="bold", ha="center")
-            fig.text(0.5, 0.44, "Visualizing Longitudinal Spatial Hole Burning & 2D Optical/Thermal Waveguide Modes", color="#8892b0", fontsize=12, ha="center")
-            fig.text(0.5, 0.32, "Press PLAY to view sweeps of mirror reflectivity, injection current, and self-heating.", color="#e6f1ff", fontsize=11, ha="center", style="italic", alpha=0.8)
-        else:
-            # Closing Slide
-            fig.suptitle("PLaser PARAMETRIC SEARCH COMPLETE", color="#64ffda", fontsize=32, fontweight="bold", y=0.65)
-            fig.text(0.5, 0.52, "Discovered Optimized Cavity Configuration:", color="#ffffff", fontsize=16, fontweight="bold", ha="center")
-            fig.text(0.5, 0.44, "R1 = 0.90 (HR)  |  R2 = 0.30 (Cleaved)  |  L = 300 um  |  T0 = 250 K", color="#64ffda", fontsize=15, ha="center")
-            fig.text(0.5, 0.36, "Physics-Informed Neural Network Surrogate  |  1,000,000x Speedup", color="#8892b0", fontsize=12, ha="center")
-            fig.text(0.5, 0.28, "Contact: Zhenwen Wan (Simulation Expert)", color="#8892b0", fontsize=10, ha="center")
-            
-        write_frame_to_video()
-        continue
-
-    # Set background colors back to standard dashboard theme
-    fig.patch.set_facecolor("#0a192f")
-    ax_carrier.set_facecolor("#172a45")
-    ax_optical.set_facecolor("#172a45")
-    ax_trans_mode.set_facecolor("#172a45")
-    ax_trans_temp.set_facecolor("#172a45")
-    ax_horiz_mode.set_facecolor("#172a45")
-    ax_vert_mode.set_facecolor("#172a45")
+    # Determine mode
+    mode = "dashboard" if frame < 180 else "analyzer"
     
-    ax_carrier.axis("on")
-    ax_optical.axis("on")
-    ax_trans_mode.axis("on")
-    ax_trans_temp.axis("on")
-    ax_horiz_mode.axis("on")
-    ax_vert_mode.axis("on")
+    # Toggle axes visibility based on mode
+    dash_visible = (mode == "dashboard")
+    for ax in [ax_carrier, ax_optical, ax_trans_mode, ax_trans_temp, ax_horiz_mode, ax_vert_mode]:
+        ax.set_visible(dash_visible)
+    for ax in [ax_m2d_z, ax_t2d_z, ax_3d_m, ax_3d_t]:
+        ax.set_visible(not dash_visible)
 
     # Get sweep parameters
     r1 = r1_seq[frame]
@@ -209,185 +176,274 @@ for frame in range(total_frames):
     # Run PINN prediction
     res = surrogate.predict(R1=r1, R2=r2, L_um=L, T0=T0, I_active=I_active)
     
-    P_opt_mw = res["P_opt"] * 1000.0
+    P_opt = res["P_opt"]
+    P_opt_mw = P_opt * 1000.0
     WPE_pct = res["wpe"] * 100.0
     I_total = res["I_total"]
-    N_prof = res["N"] / 1.0e18
-    P_prof = res["P"] * 1000.0
+    N_prof = res["N"]
+    P_prof = res["P"]
+    z_grid = res["z_grid"]
     
-    power_history.append(P_opt_mw)
-    if len(power_history) > 60:
-        power_history.pop(0)
-
-    # ----------------------------------------------------
-    # Animation Phase Details
-    # ----------------------------------------------------
-    if frame < 135:
-        phase_title = "PHASE 1: FACET COATING OPTIMIZATION (R2 SWEEP)"
-        phase_desc = "Varying front facet reflectivity R2. Lower R2 increases output coupling power\nbut skews the carrier profile (Spatial Hole Burning) near the output facet (z = 100%)."
-        active_idx = 1
-    elif frame < 240:
-        phase_title = "PHASE 2: CHARACTERIZING LASING THRESHOLD (CURRENT SWEEP)"
-        phase_desc = "Sweeping current. Below threshold (~0.06A) carrier density rises linearly with zero optical power.\nAbove threshold, carrier density clamps due to stimulated emission, and optical power shoots up."
-        active_idx = 4
-    else:
-        phase_title = "PHASE 3: THERMAL LIMITATION & ROLL-OFF (TEMPERATURE SWEEP)"
-        phase_desc = "Sweeping temperature. Higher temperature degrades WPE and output power due to augmented Auger\nrecombination losses (CN^3 heating) and threshold current shift, causing clear thermal roll-off."
-        active_idx = 3
-
+    # Get local slice coordinates
+    z_sel = z_seq[frame]
+    idx = int(np.clip(round(z_sel / (L / 50.0)), 0, 50))
+    
     # State logic based on model predictions
-    if I_active < 0.055:
-        state = "BELOW THRESHOLD (NO LASING)"
-        state_color = "#8892b0"
-    elif frame >= 240 and T0 > 300.0:
-        state = f"THERMAL DROOP (POWER DROPS)"
-        state_color = "#ff7b72"
-    elif P_opt_mw < 10.0:
-        state = "NEAR THRESHOLD (SPONTANEOUS EMISSION)"
-        state_color = "#ff7b72"
+    status = "Inactive"
+    color_status = "#ff3366"
+    if P_opt_mw > 0.1:
+        if WPE_pct > 1.0:
+            status = "Optimized Lasing"
+            color_status = "#00ffcc"
+        elif T0 > 325:
+            status = "Thermal Droop"
+            color_status = "#ffaa00"
+        else:
+            status = "Near Threshold"
+            color_status = "#58a6ff"
     else:
-        state = "ACTIVE LASING (STABLE LASER OUTPUT)"
-        state_color = "#64ffda"
+        status = "Below Threshold"
+        color_status = "#8b949e"
 
-    # ----------------------------------------------------
-    # Subplot 1: Longitudinal Carrier Profile N(z)
-    # ----------------------------------------------------
-    ax_carrier.clear()
-    ax_carrier.set_title("LONGITUDINAL CARRIER DENSITY N(z) & SHB", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    ax_carrier.plot(z_grid, N_prof, color="#ff7b72", linewidth=2.0, label="Carrier Density N(z)")
-    ax_carrier.set_xlim(0, 100)
+    # 1. DRAW SIDEBAR (LEFT DASHBOARD)
+    ax_sidebar.clear()
+    ax_sidebar.axis("off")
+    ax_sidebar.set_facecolor("#161b22")
+    # Draw right border line
+    ax_sidebar.axvline(x=0.99, color="#30363d", linewidth=1.5)
     
-    ymax_n = max(6.0, max(N_prof) * 1.2)
-    ax_carrier.set_ylim(0.0, ymax_n)
-    ax_carrier.set_xlabel("Cavity Axis Position z (%)", color="#8892b0", fontsize=8)
-    ax_carrier.set_ylabel("N (10^18 cm^-3)", color="#8892b0", fontsize=8)
-    ax_carrier.grid(True, color="#233554", linestyle="--", linewidth=0.5)
-    ax_carrier.tick_params(colors="#8892b0", labelsize=8)
+    # App logo and title (Clean ASCII/plain text to avoid missing glyph square box warnings in Matplotlib)
+    ax_sidebar.text(0.08, 0.94, "PLaser Designer", color="#58a6ff", fontsize=15, fontweight="bold")
     
-    ax_carrier.axvline(x=0, color="#8892b0", linestyle=":", linewidth=1)
-    ax_carrier.axvline(x=100, color="#8892b0", linestyle=":", linewidth=1)
-    ax_carrier.text(2, ymax_n * 0.9, "HR Facet (R1)", color="#8892b0", fontsize=7, va="top")
-    ax_carrier.text(98, ymax_n * 0.9, "AR Facet (R2)", color="#8892b0", fontsize=7, va="top", ha="right")
+    # View Mode Radio Selector
+    ax_sidebar.text(0.08, 0.89, "View Mode", color="#8b949e", fontsize=9, fontweight="bold")
     
-    if r2 < 0.20 and I_active > 0.08:
-        ax_carrier.annotate("SHB Dip", xy=(90, N_prof[-5]), xytext=(55, N_prof[-5] - 0.7),
-                            arrowprops=dict(facecolor='#64ffda', shrink=0.08, width=1.0, headwidth=4),
-                            color="#64ffda", fontsize=8, fontweight="bold")
-    ax_carrier.legend(loc="lower left", facecolor="#0a192f", edgecolor="#233554", fontsize=7)
+    dash_active = (mode == "dashboard")
+    ax_sidebar.text(0.08, 0.85, "(o)" if dash_active else "( )", color="#58a6ff" if dash_active else "#8b949e", fontsize=10, fontweight="bold")
+    ax_sidebar.text(0.18, 0.85, "Multi-Physics Dashboard", color="#c9d1d9" if dash_active else "#8b949e", fontsize=8.5, fontweight="bold" if dash_active else "normal")
+    
+    ax_sidebar.text(0.08, 0.81, "(o)" if not dash_active else "( )", color="#58a6ff" if not dash_active else "#8b949e", fontsize=10, fontweight="bold")
+    ax_sidebar.text(0.18, 0.81, "3D Cavity Field Analyzer", color="#c9d1d9" if not dash_active else "#8b949e", fontsize=8.5, fontweight="bold" if not dash_active else "normal")
+    
+    ax_sidebar.plot([0.08, 0.92], [0.77, 0.77], color="#30363d", lw=1)
+    
+    if dash_active:
+        # Title: Design Parameters
+        ax_sidebar.text(0.08, 0.73, "Design Parameters", color="#58a6ff", fontsize=11, fontweight="bold")
+        
+        # Helper to draw a slider widget
+        def draw_slider(y, label, val_str, fraction):
+            ax_sidebar.text(0.08, y + 0.02, label, color="#c9d1d9", fontsize=8)
+            ax_sidebar.text(0.92, y + 0.02, val_str, color="#8b949e", fontsize=8, ha="right")
+            ax_sidebar.plot([0.08, 0.92], [y, y], color="#30363d", lw=3)
+            ax_sidebar.plot([0.08, 0.08 + 0.84 * fraction], [y, y], color="#58a6ff", lw=3)
+            ax_sidebar.plot(0.08 + 0.84 * fraction, y, marker="o", color="#58a6ff", ms=6)
 
-    # ----------------------------------------------------
-    # Subplot 2: Longitudinal Optical Field Profile P(z)
-    # ----------------------------------------------------
-    ax_optical.clear()
-    ax_optical.set_title("LONGITUDINAL POWER PROFILE P(z)", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    ax_optical.plot(z_grid, P_prof, color="#64ffda", linewidth=2.0, label="Optical Power P(z)")
-    ax_optical.set_xlim(0, 100)
-    
-    ymax_p = max(100.0, max(P_prof) * 1.2)
-    ax_optical.set_ylim(0.0, ymax_p)
-    ax_optical.set_xlabel("Cavity Axis Position z (%)", color="#8892b0", fontsize=8)
-    ax_optical.set_ylabel("Power P (mW)", color="#8892b0", fontsize=8)
-    ax_optical.grid(True, color="#233554", linestyle="--", linewidth=0.5)
-    ax_optical.tick_params(colors="#8892b0", labelsize=8)
-    
-    ax_optical.axvline(x=0, color="#8892b0", linestyle=":", linewidth=1)
-    ax_optical.axvline(x=100, color="#8892b0", linestyle=":", linewidth=1)
-    
-    ax_optical.legend(loc="upper left", facecolor="#0a192f", edgecolor="#233554", fontsize=7)
+        r1_frac = (r1 - 0.1) / (0.95 - 0.1)
+        draw_slider(0.67, "Left Mirror R1 (HR)", f"{r1:.2f}", r1_frac)
+        
+        r2_frac = (r2 - 0.05) / (0.50 - 0.05)
+        draw_slider(0.59, "Right Mirror R2 (AR)", f"{r2:.2f}", r2_frac)
+        
+        L_frac = (L - 100) / (1000 - 100)
+        draw_slider(0.51, "Cavity Length L (um)", f"{L:.0f}", L_frac)
+        
+        # Operating Conditions header
+        ax_sidebar.text(0.08, 0.44, "Operating Conditions", color="#58a6ff", fontsize=11, fontweight="bold")
+        
+        T0_frac = (T0 - 250) / (360 - 250)
+        draw_slider(0.38, "Ambient Temperature T0 (K)", f"{T0:.0f}", T0_frac)
+        
+        I_frac = (I_active - 0.01) / (0.50 - 0.01)
+        draw_slider(0.30, "Injection Current (A)", f"{I_active:.2f}", I_frac)
+        
+        # Metrics cards
+        rect = plt.Rectangle((0.08, 0.03), 0.84, 0.21, facecolor="#1f242c", edgecolor="#30363d", lw=1, transform=ax_sidebar.transData)
+        ax_sidebar.add_patch(rect)
+        
+        ax_sidebar.text(0.12, 0.19, f"State: {status}", color=color_status, fontsize=8.5, fontweight="bold")
+        ax_sidebar.text(0.12, 0.14, f"Output Power: {P_opt_mw:.1f} mW", color="#c9d1d9", fontsize=8.5)
+        ax_sidebar.text(0.12, 0.09, f"WPE: {WPE_pct:.2f} %", color="#c9d1d9", fontsize=8.5)
+        ax_sidebar.text(0.12, 0.04, f"Total Current: {I_total:.3f} A", color="#c9d1d9", fontsize=8.5)
+        
+    else:
+        # Title: 3D Cavity Controller
+        ax_sidebar.text(0.08, 0.73, "3D Cavity Controller", color="#58a6ff", fontsize=11, fontweight="bold")
+        
+        z_frac = z_sel / L
+        # Draw z slider
+        ax_sidebar.text(0.08, 0.67, "Inspect Cavity Position z (um)", color="#c9d1d9", fontsize=8)
+        ax_sidebar.text(0.92, 0.67, f"{z_sel:.1f}", color="#8b949e", fontsize=8, ha="right")
+        ax_sidebar.plot([0.08, 0.92], [0.65, 0.65], color="#30363d", lw=3)
+        ax_sidebar.plot([0.08, 0.08 + 0.84 * z_frac], [0.65, 0.65], color="#58a6ff", lw=3)
+        ax_sidebar.plot(0.08 + 0.84 * z_frac, 0.65, marker="o", color="#58a6ff", ms=6)
+        
+        # Metric card
+        rect = plt.Rectangle((0.08, 0.32), 0.84, 0.26, facecolor="#1f242c", edgecolor="#30363d", lw=1, transform=ax_sidebar.transData)
+        ax_sidebar.add_patch(rect)
+        
+        ax_sidebar.text(0.12, 0.53, f"Local z Position: {z_sel:.1f} um", color="#58a6ff", fontsize=8.5, fontweight="bold")
+        ax_sidebar.text(0.12, 0.46, f"Local Carrier Density N(z):", color="#8b949e", fontsize=7.5)
+        ax_sidebar.text(0.12, 0.42, f"{N_prof[idx] / 1e18:.3f} x 10^18 cm^-3", color="#ff7b72", fontsize=9, fontweight="bold")
+        ax_sidebar.text(0.12, 0.37, f"Local Optical Power P(z):", color="#8b949e", fontsize=7.5)
+        ax_sidebar.text(0.12, 0.33, f"{P_prof[idx] * 1000.0:.1f} mW", color="#64ffda", fontsize=9, fontweight="bold")
 
-    # ----------------------------------------------------
-    # Subplot 3: 2D Transverse Optical Mode shape
-    # ----------------------------------------------------
-    ax_trans_mode.clear()
-    ax_trans_mode.set_title("TRANSVERSE OPTICAL MODE SHAPE |Ψ(x,y)|²", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
+    # 2. DRAW RIGHT MAIN PANEL CONTENT
+    # Clear labels from previous frames
+    fig.texts.clear()
     
-    # Calculate mode intensity (Gaussian waveguide mode)
-    # Peak intensity scales with current output power
+    # Title headers in main area
+    fig.text(0.25, 0.94, "PLaser Designer", color="#58a6ff", fontsize=18, fontweight="bold")
+    fig.text(0.25, 0.91, "Multi-Physics Dashboard" if dash_visible else "3D Cavity Field Analyzer", color="#8b949e", fontsize=10)
+    fig.text(0.95, 0.94, f"Frame {frame+1}/{total_frames}", color="#8b949e", fontsize=9, ha="right")
+    
     norm_power = max(0.001, P_opt_mw / 250.0)
-    # Fundamental transverse mode profile (1.8 um horizontal width, 0.6 um vertical height)
-    I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
     
-    contour_m = ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
-    ax_trans_mode.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
-    ax_trans_mode.set_ylabel("height y (μm)", color="#8892b0", fontsize=8)
-    ax_trans_mode.tick_params(colors="#8892b0", labelsize=8)
-    
-    # Waveguide boundary overlay (dotted white)
-    rect_waveguide = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.6)
-    ax_trans_mode.add_patch(rect_waveguide)
-    ax_trans_mode.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="#ffffff", fontsize=6.5, ha="center", alpha=0.7)
-
-    # ----------------------------------------------------
-    # Subplot 4: 2D Transverse Temperature distribution
-    # ----------------------------------------------------
-    ax_trans_temp.clear()
-    ax_trans_temp.set_title("TRANSVERSE HEAT DISTRIBUTION T(x,y)", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    
-    # Self heating scales with current and inversely with output power (thermal efficiency loss)
-    heating_power = max(0.0, I_total * 1.05 - (P_opt_mw / 1000.0))
-    # Delta T rise up to ~25 K
-    delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-    # Bottom heat sink boundary condition at y = -2 um where T = T0
-    # Heat generated in active region near y = 0
-    T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
-    
-    contour_t = ax_trans_temp.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
-    ax_trans_temp.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
-    ax_trans_temp.set_ylabel("height y (μm)", color="#8892b0", fontsize=8)
-    ax_trans_temp.tick_params(colors="#8892b0", labelsize=8)
-
-    # Heat sink bottom line label
-    ax_trans_temp.axhline(y=-2.0, color="#ffffff", linestyle="-", linewidth=1.2, alpha=0.8)
-    ax_trans_temp.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="#ffffff", fontsize=6.5, ha="center", fontweight="bold")
-
-    # ----------------------------------------------------
-    # Subplot 5: Horizontal Cut Mode Profile
-    # ----------------------------------------------------
-    ax_horiz_mode.clear()
-    ax_horiz_mode.set_title("HORIZONTAL MODE CUT |Ψ(x,0)|²", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
-    ax_horiz_mode.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0)
-    ax_horiz_mode.set_xlabel("width x (μm)", color="#8892b0", fontsize=8)
-    ax_horiz_mode.set_ylabel("Intensity", color="#8892b0", fontsize=8)
-    ax_horiz_mode.grid(True, color="#233554", linestyle="--", linewidth=0.5)
-    ax_horiz_mode.tick_params(colors="#8892b0", labelsize=8)
-    ax_horiz_mode.set_ylim(0.0, 1.2)
-
-    # ----------------------------------------------------
-    # Subplot 6: Vertical Cut Mode Profile
-    # ----------------------------------------------------
-    ax_vert_mode.clear()
-    ax_vert_mode.set_title("VERTICAL MODE CUT |Ψ(0,y)|²", color="#ffffff", fontsize=9.5, fontweight="bold", pad=8)
-    I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
-    ax_vert_mode.plot(ty, I_vert, color="#ff33cc", linewidth=2.0)
-    ax_vert_mode.set_xlabel("height y (μm)", color="#8892b0", fontsize=8)
-    ax_vert_mode.set_ylabel("Intensity", color="#8892b0", fontsize=8)
-    ax_vert_mode.grid(True, color="#233554", linestyle="--", linewidth=0.5)
-    ax_vert_mode.tick_params(colors="#8892b0", labelsize=8)
-    ax_vert_mode.set_ylim(0.0, 1.2)
-
-    # Enforce uniform box aspect ratio (0.48) on all 6 subplots
-    ax_carrier.set_box_aspect(0.48)
-    ax_optical.set_box_aspect(0.48)
-    ax_trans_mode.set_box_aspect(0.48)
-    ax_trans_temp.set_box_aspect(0.48)
-    ax_horiz_mode.set_box_aspect(0.48)
-    ax_vert_mode.set_box_aspect(0.48)
-
-    # Figure headers, descriptions, and dynamic unified status banner
-    fig.texts.clear() # Clear overlays from previous frames
-    fig.suptitle(phase_title, color="#64ffda", fontsize=16, fontweight="bold", y=0.96)
-    fig.text(0.5, 0.91, phase_desc, color="#ffffff", fontsize=10.0, ha="center")
-    fig.text(0.94, 0.96, f"Frame {frame+1}/{total_frames}", color="#8892b0", fontsize=9, ha="right")
-    fig.text(0.06, 0.96, "PLaser 1D-2D MULTIPHYSICS SIMULATOR", color="#ffffff", fontsize=11, fontweight="bold")
-
-    # Dynamic status overlay for live parameters and metrics
-    status_text = f"PARAMETERS: R1={r1:.2f} | R2={r2:.2f} | L={L:.0f} μm | T0={T0:.1f} K | I_act={I_active:.3f} A    ===    METRICS: Power={P_opt_mw:.1f} mW | WPE={WPE_pct:.2f}% | Current={I_total:.3f} A | State: {state}"
-    fig.text(0.5, 0.86, status_text, color="#64ffda", fontsize=9.5, fontweight="bold", ha="center", bbox=dict(facecolor="#172a45", edgecolor="#233554", boxstyle="round,pad=0.4"))
+    if dash_visible:
+        # Plot 1: Carrier Density N(z)
+        ax_carrier.clear()
+        ax_carrier.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0)
+        ax_carrier.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
+        ax_carrier.set_xlabel("z Position (um)", color="#8b949e", fontsize=7.5)
+        ax_carrier.set_ylabel("N (10^18 cm^-3)", color="#8b949e", fontsize=7.5)
+        ax_carrier.grid(True, linestyle="--", alpha=0.3, color="#233554")
+        ax_carrier.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_carrier.spines.values():
+            spine.set_color("#30363d")
+        
+        # Plot 2: Optical Power P(z)
+        ax_optical.clear()
+        ax_optical.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0)
+        ax_optical.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
+        ax_optical.set_xlabel("z Position (um)", color="#8b949e", fontsize=7.5)
+        ax_optical.set_ylabel("Power (mW)", color="#8b949e", fontsize=7.5)
+        ax_optical.grid(True, linestyle="--", alpha=0.3, color="#233554")
+        ax_optical.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_optical.spines.values():
+            spine.set_color("#30363d")
+            
+        # Plot 3: 2D Mode intensity
+        ax_trans_mode.clear()
+        I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+        ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+        ax_trans_mode.set_title("Mode Intensity Shape |Psi|^2", color="white", fontsize=9, fontweight="bold")
+        ax_trans_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
+        ax_trans_mode.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
+        ax_trans_mode.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_trans_mode.spines.values():
+            spine.set_color("#30363d")
+        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+        ax_trans_mode.add_patch(rect)
+        ax_trans_mode.text(0, -0.6, "Active Region (2.8 x 0.342 um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+        
+        # Plot 4: 2D Temperature heat map
+        ax_trans_temp.clear()
+        heating_power = max(0.0, I_total * 1.05 - P_opt)
+        delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
+        T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+        ax_trans_temp.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
+        ax_trans_temp.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
+        ax_trans_temp.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
+        ax_trans_temp.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
+        ax_trans_temp.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_trans_temp.spines.values():
+            spine.set_color("#30363d")
+        ax_trans_temp.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
+        ax_trans_temp.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
+        
+        # Plot 5: Horizontal slice
+        ax_horiz_mode.clear()
+        I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+        ax_horiz_mode.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0)
+        ax_horiz_mode.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+        ax_horiz_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
+        ax_horiz_mode.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+        ax_horiz_mode.grid(True, linestyle="--", alpha=0.3, color="#233554")
+        ax_horiz_mode.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_horiz_mode.set_ylim(0.0, 1.2)
+        for spine in ax_horiz_mode.spines.values():
+            spine.set_color("#30363d")
+            
+        # Plot 6: Vertical slice
+        ax_vert_mode.clear()
+        I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+        ax_vert_mode.plot(ty, I_vert, color="#ff33cc", linewidth=2.0)
+        ax_vert_mode.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+        ax_vert_mode.set_xlabel("y height (um)", color="#8b949e", fontsize=7.5)
+        ax_vert_mode.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+        ax_vert_mode.grid(True, linestyle="--", alpha=0.3, color="#233554")
+        ax_vert_mode.tick_params(colors="#8b949e", labelsize=7.5)
+        ax_vert_mode.set_ylim(0.0, 1.2)
+        for spine in ax_vert_mode.spines.values():
+            spine.set_color("#30363d")
+            
+        # Draw guidance text box at bottom
+        fig.text(0.25, 0.05, "Design Guidance: Mirror asymmetry R1 >> R2 skews the optical profile towards front facet (SHB dip).", color="#8b949e", fontsize=8.5)
+        
+    else:
+        # 3D Cavity Analyzer Mode (Local Slices & 3D Surface plots)
+        ax_m2d_z.clear()
+        norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
+        I_mode_z = norm_power_z * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+        ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+        ax_m2d_z.set_title(f"Local Optical Mode at z = {z_sel:.1f} um", color="white", fontsize=9, fontweight="bold")
+        ax_m2d_z.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
+        ax_m2d_z.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
+        ax_m2d_z.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_m2d_z.spines.values():
+            spine.set_color("#30363d")
+        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+        ax_m2d_z.add_patch(rect)
+        ax_m2d_z.text(0, -0.6, "Active Region (2.8 x 0.342 um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+        
+        ax_t2d_z.clear()
+        P_avg = max(1e-5, np.mean(P_prof))
+        T_scale_z = P_prof[idx] / P_avg
+        heating_power = max(0.0, I_total * 1.05 - P_opt)
+        delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
+        T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+        ax_t2d_z.contourf(TX, TY, T_trans_z, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
+        ax_t2d_z.set_title(f"Local Temperature at z = {z_sel:.1f} um", color="white", fontsize=9, fontweight="bold")
+        ax_t2d_z.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
+        ax_t2d_z.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
+        ax_t2d_z.tick_params(colors="#8b949e", labelsize=7.5)
+        for spine in ax_t2d_z.spines.values():
+            spine.set_color("#30363d")
+        ax_t2d_z.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
+        ax_t2d_z.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
+        
+        # 3D surface plots (rendered at flat 1.3 height)
+        ax_3d_m.clear()
+        TX_3d, TZ_3d = np.meshgrid(tx, z_grid)
+        I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / 1.5**2)
+        ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
+        ax_3d_m.set_title("3D Optical Intensity |Psi(x, 0, z)|^2", color="white", fontsize=9.5, fontweight="bold")
+        ax_3d_m.set_xlabel("x width (um)", color="#8b949e", fontsize=7)
+        ax_3d_m.set_ylabel("z Position (um)", color="#8b949e", fontsize=7)
+        ax_3d_m.set_zlabel("Intensity", color="#8b949e", fontsize=7)
+        ax_3d_m.set_box_aspect((1.5, 1.0, 0.45))
+        ax_3d_m.view_init(elev=20, azim=-55)
+        ax_3d_m.xaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_m.yaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_m.zaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_m.tick_params(colors="#8b949e", labelsize=6.5)
+        
+        ax_3d_t.clear()
+        T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / 2.0**2) * ((0.0 + 2.0)/2.0)
+        ax_3d_t.plot_surface(TX_3d, TZ_3d, T_3d, cmap=cmap_temp, edgecolor="none", antialiased=True, vmin=250.0, vmax=385.0)
+        ax_3d_t.set_title("3D Temperature Profile T(x, 0, z)", color="white", fontsize=9.5, fontweight="bold")
+        ax_3d_t.set_xlabel("x width (um)", color="#8b949e", fontsize=7)
+        ax_3d_t.set_ylabel("z Position (um)", color="#8b949e", fontsize=7)
+        ax_3d_t.set_zlabel("Temp (K)", color="#8b949e", fontsize=7)
+        ax_3d_t.set_box_aspect((1.5, 1.0, 0.45))
+        ax_3d_t.view_init(elev=20, azim=-55)
+        ax_3d_t.xaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_t.yaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_t.zaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+        ax_3d_t.tick_params(colors="#8b949e", labelsize=6.5)
 
     write_frame_to_video()
     
-    # Print progress
     if (frame + 1) % 60 == 0:
         print(f"Rendered {frame+1}/{total_frames} frames...")
 
