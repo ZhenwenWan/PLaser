@@ -283,7 +283,7 @@ def main():
         st.markdown("This analyzer projects the 2D transverse distributions along the 51 cavity $z$-slices to reconstruct the full 3D spatial field inside the laser.")
         
         # Slice Selection Slider
-        z_sel = st.slider("Inspect Cavity Position z (μm)", min_value=0.0, max_value=L_um, value=L_um, step=L_um/50.0)
+        z_sel = st.slider("Inspect Cavity Position z (μm)", min_value=0.0, max_value=float(L_um), value=float(L_um), step=float(L_um)/50.0)
         idx = int(np.clip(round(z_sel / (L_um / 50.0)), 0, 50))
         
         # Local metrics cards
