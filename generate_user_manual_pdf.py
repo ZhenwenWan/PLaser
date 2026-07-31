@@ -152,9 +152,11 @@ with PdfPages(str(output_pdf_path)) as pdf:
     )
     y = draw_paragraph(ax, p4_txt, 0.05, y)
     
-    # Embed workflow diagram
-    embed_image(fig, assets_dir / "workflow_diagram.png", 0.05, 0.12, 0.90, 0.22)
-    ax.text(0.5, 0.11, "Figure 1.1: Project data flow mapping physical assembly to numerical and PINN solvers.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
+    # Embed three parallel slicing images
+    embed_image(fig, assets_dir / "3d_live_laser_chip.jpg", 0.05, 0.14, 0.28, 0.16)
+    embed_image(fig, assets_dir / "3d_transparent_transverse_slice.jpg", 0.36, 0.14, 0.28, 0.16)
+    embed_image(fig, assets_dir / "3d_transparent_longitudinal_slice.jpg", 0.67, 0.14, 0.28, 0.16)
+    ax.text(0.5, 0.10, "Figure 1.1: Slicing the 3D physical laser chip (a) into transverse (b) and longitudinal (c) models.", color=MUTED_TEXT, fontsize=8, ha='center', style='italic')
     
     add_footer(ax, 2)
     pdf.savefig(fig, facecolor=fig.get_facecolor(), edgecolor="none")

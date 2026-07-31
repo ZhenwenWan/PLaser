@@ -8,27 +8,37 @@ Welcome to the **PLaser** Diode Laser EDA Suite user manual. This document serve
 
 PLaser maps the complex physical assembly of telecom laser packages to simplified geometric solvers, enabling instantaneous electro-thermal-optical analysis.
 
+### 1.1 Slicing the 3D Physical Device
+To decompose the full 3D multi-physics equations, the physical 3D chip waveguide structure is sliced along two distinct orthogonal planes:
+* **Image a (3D Live Chip Image):** Displays the solid physical assembly of the semiconductor ridge waveguide laser chip.
+* **Image b (Transverse Slice Plane x-y):** Highlights the cross-sectional plane perpendicular to light propagation, solved by 2D Elmer FEM.
+* **Image c (Longitudinal Cavity Slice z):** Highlights the longitudinal active region cavity grid along the z-axis, solved by the 1D solver.
+
+![3D Live Laser Chip](docs/manual_assets/3d_live_laser_chip.jpg)
+![Transverse Slice Plane](docs/manual_assets/3d_transparent_transverse_slice.jpg)
+![Longitudinal Cavity Slice](docs/manual_assets/3d_transparent_longitudinal_slice.jpg)
+
+### 1.2 Geometrical Solver Mapping Panels
+
 ### Panel 1: Physical Device Assembly (14-Pin Butterfly Package & Diode Chip)
 In fiber-optic telecommunications, edge-emitting semiconductor lasers are integrated into standard **14-Pin Butterfly Packages**. This packaging protects the assembly and contains the laser diode chip, a Thermoelectric Cooler (TEC), a temperature-sensing thermistor, an optical isolator, and coupling lenses. 
 
-The laser chip itself is a micron-scale semiconductor grown on an **Indium Phosphide (InP)** substrate. Current injection through stripe contacts generates optical gain inside a **Multi-Quantum Well (MQW)** active layer. The ridge waveguide structure confines light horizontally and vertically to emit a coherent single-mode beam through the cleaved facets.
+The laser chip itself (shown in **Image a**) is a micron-scale semiconductor grown on an **Indium Phosphide (InP)** substrate. Current injection through stripe contacts generates optical gain inside a **Multi-Quantum Well (MQW)** active layer. The ridge waveguide structure confines light horizontally and vertically to emit a coherent single-mode beam through the cleaved facets.
 
 ### Panel 2: Submount Heat Sink (Submount Mounting & Heat Dissipation)
 To operate high-power telecom lasers without thermal droop or degradation, the laser diode chip is mounted **p-side down** on a highly conductive **Copper (Cu) or Silicon Carbide (SiC) submount** heat sink. 
 
-Since the heat-generating active MQW region is only a few microns from the top p-contact layer, p-down mounting provides the shortest thermal path to the submount. Self-heating from Joule resistance and non-radiative Auger recombination ($CN^3$) is quickly swept away through the submount to the underlying TEC. The bottom boundary of the submount is held at a constant coolant/ambient temperature $T_0$, acting as a thermal boundary sink.
+**Transverse Nature:** Yes! The Submount Heat Sink view represents a transverse cross-section (x-y plane) of the package, looking from the output mirror facet. It illustrates the heat dissipation path from the active MQW region through p-contact layers into the copper submount. Self-heating from Joule resistance and non-radiative Auger recombination ($CN^3$) is quickly swept away through the submount to the underlying TEC. The bottom boundary of the submount is held at a constant coolant/ambient temperature $T_0$, acting as a thermal boundary sink.
 
 ### Panel 3: 2D Transverse Model (2D Elmer FEM Cross-Section Solver)
-The 2D transverse plane ($x-y$ plane perpendicular to light propagation) governs optical waveguide modal confinement and local physical properties. The reference **2D Elmer FEM Solver** solves the coupled differential equations across the ridge cross-section:
-1. **Electrostatics (Poisson):** Solves the electrostatic potential $\psi(x, y)$ under biasing contacts.
-2. **Carrier Transport (Drift-Diffusion):** Governs lateral current distribution and electron/hole profiles.
-3. **Wave Optics (Vector Helmholtz):** Computes waveguide mode shapes $\Psi(x, y)$ and modal confinement $\Gamma$.
-4. **Thermal Diffusion:** Tracks local lattice temperature distribution $T(x, y)$ and ridge hotspots.
+The 2D transverse plane cross-section ($x-y$ plane shown in **Image b**, perpendicular to light propagation) governs optical waveguide modal confinement and local physical properties. The reference **2D Elmer FEM Solver** solves the coupled Poisson (electrostatics), drift-diffusion (carriers), vector Helmholtz (wave optics), and thermal diffusion differential equations.
+* **Coordinate Mapping:** The Elmer solvers work on the 2D cross-section coordinate domain $[−6, 6] \times [0, 4.23]\,\mu\text{m}$. This domain is mapped directly to the app's coordinate system where $x_{app} = y_{Elmer}$ (cropped to $[-3.5, 3.5]$) and $y_{app} = z_{Elmer} - 2\,\mu\text{m}$, which shifts the active region core center to zero.
 
-### Panel 4: 1D Longitudinal Cavity (1D Longitudinal Cavity & Spatial Hole Burning)
-Along the propagation axis ($z$-axis, cavity length $L$), forward- and backward-propagating wave envelopes bounce between the mirror facets. In asymmetric cavity coatings (e.g., highly reflective HR rear mirror $R_1 \approx 90\%$ and anti-reflective AR front mirror $R_2 \approx 5\%$), the internal optical power increases exponentially towards the output facet. 
+### Panel 4: 1D Longitudinal Cavity (1D Longitudinal Cavity Architecture)
+Along the propagation axis ($z$-axis shown in **Image c**, cavity length $L$), forward- and backward-propagating wave envelopes bounce between the mirror facets. In asymmetric cavity coatings (e.g., highly reflective HR rear mirror $R_1 \approx 90\%$ and anti-reflective AR front mirror $R_2 \approx 5\%$), the internal optical power increases exponentially towards the output facet. 
 
-This power surge drains the carrier density $N(z)$ near the front mirror due to rapid stimulated recombination. The resulting longitudinal carrier depletion dip is known as **Spatial Hole Burning (SHB)**, which degrades single-mode wavelength stability. PLaser's surrogate evaluates these coupled longitudinal profiles instantly.
+This power surge drains the carrier density $N(z)$ near the front mirror due to rapid stimulated recombination. This depletion profile, known as **Spatial Hole Burning (SHB)**, impairs single-mode wavelength stability.
+* **Discretization Mapping:** The longitudinal channel is discretized into a 51-point computational grid from $z=0$ (HR facet) to $z=L$ (AR facet), solving the coupled rate equations for the forward and backward optical waves. The app depicts the schematic architecture of this cavity grid, mirror facets, and directional wave vectors.
 
 ---
 
