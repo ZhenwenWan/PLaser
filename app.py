@@ -88,21 +88,48 @@ def main():
         st.error(f"Error loading PINN model weights: {e}")
         st.info("Please run the training script first: `python train_pinn.py` to generate the model weights.")
         return
+            # Initialize session state for design parameters if not present
+    if "R1" not in st.session_state:
+        st.session_state.R1 = 0.90
+    if "R2" not in st.session_state:
+        st.session_state.R2 = 0.05
+    if "L_um" not in st.session_state:
+        st.session_state.L_um = 300
+    if "T0" not in st.session_state:
+        st.session_state.T0 = 300
+    if "I_active" not in st.session_state:
+        st.session_state.I_active = 0.13
+
+    # View Mode Selector at the top of the sidebar
+    mode = st.sidebar.radio("View Mode", ["📊 Multi-Physics Dashboard", "👁️ 3D Cavity Field Analyzer"])
+
+    if mode == "📊 Multi-Physics Dashboard":
+        st.sidebar.header("🔧 Design Parameters")
+        st.sidebar.subheader("Facet Reflectivities")
+        R1 = st.sidebar.slider("Left Mirror (HR) Reflectivity R1", 0.1, 0.95, st.session_state.R1, step=0.01)
+        R2 = st.sidebar.slider("Right Mirror (AR) Reflectivity R2", 0.05, 0.50, st.session_state.R2, step=0.01)
         
-    # Sidebar design parameters
-    st.sidebar.header("🔧 Design Parameters")
-    
-    st.sidebar.subheader("Facet Reflectivities")
-    R1 = st.sidebar.slider("Left Mirror (HR) Reflectivity R1", 0.1, 0.95, 0.90, step=0.01)
-    R2 = st.sidebar.slider("Right Mirror (AR) Reflectivity R2", 0.05, 0.50, 0.05, step=0.01)
-    
-    st.sidebar.subheader("Cavity Dimensions")
-    L_um = st.sidebar.slider("Cavity Length L (μm)", 100, 1000, 300, step=50)
-    
-    st.sidebar.header("🔥 Operating Conditions")
-    T0 = st.sidebar.slider("Ambient Temperature T0 (K)", 250, 360, 300, step=5)
-    I_active = st.sidebar.slider("Active Region Injection Current (A)", 0.01, 0.50, 0.13, step=0.01)
-    
+        st.sidebar.subheader("Cavity Dimensions")
+        L_um = st.sidebar.slider("Cavity Length L (μm)", 100, 1000, st.session_state.L_um, step=50)
+        
+        st.sidebar.header("🔥 Operating Conditions")
+        T0 = st.sidebar.slider("Ambient Temperature T0 (K)", 250, 360, st.session_state.T0, step=5)
+        I_active = st.sidebar.slider("Active Region Injection Current (A)", 0.01, 0.50, st.session_state.I_active, step=0.01)
+        
+        # Save current values to session state
+        st.session_state.R1 = R1
+        st.session_state.R2 = R2
+        st.session_state.L_um = L_um
+        st.session_state.T0 = T0
+        st.session_state.I_active = I_active
+    else:
+        # Retain last values when in 3D Analyzer mode
+        R1 = st.session_state.R1
+        R2 = st.session_state.R2
+        L_um = st.session_state.L_um
+        T0 = st.session_state.T0
+        I_active = st.session_state.I_active
+
     # Predict in real-time
     res = surrogate.predict(R1=R1, R2=R2, L_um=L_um, T0=T0, I_active=I_active)
     
@@ -130,25 +157,34 @@ def main():
         status = "Below Threshold"
         color = "#8b949e"
 
-    # Display Metrics in the Sidebar left panel
-    st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Lasing State:** <span style='color: {color}; font-weight: bold; font-size: 1.1rem;'>{status}</span>", unsafe_allow_html=True)
-    st.sidebar.metric("Output Power (mW)", f"{P_opt * 1000.0:.2f}")
-    st.sidebar.metric("Wall-Plug Efficiency (WPE)", f"{wpe * 100.0:.3f} %")
-    st.sidebar.metric("Total Current (A)", f"{I_total:.3f}")
-    
-    # Wrap in tabs for Multi-Physics Dashboard vs 3D Analyzer
-    tab_dashboard, tab_analyzer = st.tabs(["📊 Multi-Physics Dashboard", "👁️ 3D Cavity Field Analyzer"])
-    
-    with tab_dashboard:
+    # Display metrics or slice selector in the sidebar
+    if mode == "📊 Multi-Physics Dashboard":
+        st.sidebar.markdown("---")
+        st.sidebar.markdown(f"**Lasing State:** <span style='color: {color}; font-weight: bold; font-size: 1.1rem;'>{status}</span>", unsafe_allow_html=True)
+        st.sidebar.metric("Output Power (mW)", f"{P_opt * 1000.0:.2f}")
+        st.sidebar.metric("Wall-Plug Efficiency (WPE)", f"{wpe * 100.0:.3f} %")
+        st.sidebar.metric("Total Current (A)", f"{I_total:.3f}")
+    else:
+        st.sidebar.header("👁️ 3D Cavity Controller")
+        z_sel = st.sidebar.slider("Inspect Cavity Position z (μm)", min_value=0.0, max_value=float(L_um), value=float(L_um), step=float(L_um)/50.0)
+        idx = int(np.clip(round(z_sel / (float(L_um) / 50.0)), 0, 50))
+        
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("Local Slice Metrics")
+        st.sidebar.metric("Local z Position", f"{z_grid[idx]:.1f} μm")
+        st.sidebar.metric("Local Carrier Density N(z)", f"{N_prof[idx] / 1e18:.3f} × 10¹⁸ cm⁻³")
+        st.sidebar.metric("Local Optical Power P(z)", f"{P_prof[idx] * 1000.0:.2f} mW")
+
+    # Main area content rendering based on mode
+    if mode == "📊 Multi-Physics Dashboard":
         # 3 columns for 6 reduced viewports of distributions
         col_long, col_trans2d, col_trans1d = st.columns(3)
         
         # Column 1: Longitudinal Profiles (1D along cavity length)
         with col_long:
             # Plot 1: Carrier Density N(z)
-            fig_n = plt.figure(figsize=(4.5, 2.3))
-            ax_n = fig_n.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_n = plt.figure(figsize=(4.5, 1.9))
+            ax_n = fig_n.add_axes([0.18, 0.22, 0.72, 0.65])
             ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
             ax_n.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
             ax_n.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
@@ -162,8 +198,8 @@ def main():
             st.pyplot(fig_n, use_container_width=True)
             
             # Plot 2: Optical Power P(z)
-            fig_p = plt.figure(figsize=(4.5, 2.3))
-            ax_p = fig_p.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_p = plt.figure(figsize=(4.5, 1.9))
+            ax_p = fig_p.add_axes([0.18, 0.22, 0.72, 0.65])
             ax_p.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0, label="P(z)")
             ax_p.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
             ax_p.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
@@ -184,8 +220,8 @@ def main():
             TX, TY = np.meshgrid(tx, ty)
             
             # Plot 3: 2D Mode intensity
-            fig_m2d = plt.figure(figsize=(4.5, 2.3))
-            ax_m2d = fig_m2d.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_m2d = plt.figure(figsize=(4.5, 1.9))
+            ax_m2d = fig_m2d.add_axes([0.18, 0.22, 0.72, 0.65])
             norm_power = max(0.001, P_opt * 1000.0 / 250.0)
             I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
             contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
@@ -204,8 +240,8 @@ def main():
             st.pyplot(fig_m2d, use_container_width=True)
             
             # Plot 4: 2D Temperature heat map
-            fig_t2d = plt.figure(figsize=(4.5, 2.3))
-            ax_t2d = fig_t2d.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_t2d = plt.figure(figsize=(4.5, 1.9))
+            ax_t2d = fig_t2d.add_axes([0.18, 0.22, 0.72, 0.65])
             heating_power = max(0.0, I_total * 1.05 - P_opt)
             delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
             T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
@@ -225,8 +261,8 @@ def main():
         # Column 3: 1D Transverse Slices
         with col_trans1d:
             # Plot 5: Horizontal slice
-            fig_sh = plt.figure(figsize=(4.5, 2.3))
-            ax_sh = fig_sh.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_sh = plt.figure(figsize=(4.5, 1.9))
+            ax_sh = fig_sh.add_axes([0.18, 0.22, 0.72, 0.65])
             I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
             ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
             ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
@@ -242,8 +278,8 @@ def main():
             st.pyplot(fig_sh, use_container_width=True)
             
             # Plot 6: Vertical slice
-            fig_sv = plt.figure(figsize=(4.5, 2.3))
-            ax_sv = fig_sv.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_sv = plt.figure(figsize=(4.5, 1.9))
+            ax_sv = fig_sv.add_axes([0.18, 0.22, 0.72, 0.65])
             I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
             ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
             ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
@@ -278,30 +314,20 @@ def main():
         for item in guidance:
             st.write(item)
 
-    with tab_analyzer:
+    else:
         st.subheader("👁️ Real-Time 3D Cavity Field Analysis")
         st.markdown("This analyzer projects the 2D transverse distributions along the 51 cavity $z$-slices to reconstruct the full 3D spatial field inside the laser.")
-        
-        # Slice Selection Slider
-        z_sel = st.slider("Inspect Cavity Position z (μm)", min_value=0.0, max_value=float(L_um), value=float(L_um), step=float(L_um)/50.0)
-        idx = int(np.clip(round(z_sel / (L_um / 50.0)), 0, 50))
-        
-        # Local metrics cards
-        col_m1, col_m2, col_m3 = st.columns(3)
-        col_m1.metric("Local z Position", f"{z_grid[idx]:.1f} μm")
-        col_m2.metric("Local Carrier Density N(z)", f"{N_prof[idx] / 1e18:.3f} × 10¹⁸ cm⁻³")
-        col_m3.metric("Local Optical Power P(z)", f"{P_prof[idx] * 1000.0:.2f} mW")
         
         # 2D transverse slices at selected z
         col_slice_mode, col_slice_temp = st.columns(2)
         
+        tx = np.linspace(-3.5, 3.5, 40)
+        ty = np.linspace(-2.0, 2.0, 40)
+        TX, TY = np.meshgrid(tx, ty)
+
         with col_slice_mode:
-            tx = np.linspace(-3.5, 3.5, 40)
-            ty = np.linspace(-2.0, 2.0, 40)
-            TX, TY = np.meshgrid(tx, ty)
-            
-            fig_m2d_z = plt.figure(figsize=(4.5, 2.3))
-            ax_m2d_z = fig_m2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_m2d_z = plt.figure(figsize=(4.5, 1.9))
+            ax_m2d_z = fig_m2d_z.add_axes([0.18, 0.22, 0.72, 0.65])
             norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
             I_mode_z = norm_power_z * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
             contour_m_z = ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
@@ -319,8 +345,8 @@ def main():
             st.pyplot(fig_m2d_z, use_container_width=True)
             
         with col_slice_temp:
-            fig_t2d_z = plt.figure(figsize=(4.5, 2.3))
-            ax_t2d_z = fig_t2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
+            fig_t2d_z = plt.figure(figsize=(4.5, 1.9))
+            ax_t2d_z = fig_t2d_z.add_axes([0.18, 0.22, 0.72, 0.65])
             # Scale temperature rise based on local power ratio
             P_avg = max(1e-5, np.mean(P_prof))
             T_scale_z = P_prof[idx] / P_avg
@@ -348,7 +374,7 @@ def main():
         TX_3d, TZ_3d = np.meshgrid(tx, z_grid)
         
         with col_3d_mode:
-            fig_3d_m = plt.figure(figsize=(5, 3.5))
+            fig_3d_m = plt.figure(figsize=(5, 2.6))
             ax_3d_m = fig_3d_m.add_subplot(111, projection="3d")
             I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / 1.5**2)
             surf_m = ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
@@ -368,7 +394,7 @@ def main():
             st.pyplot(fig_3d_m, use_container_width=True)
             
         with col_3d_temp:
-            fig_3d_t = plt.figure(figsize=(5, 3.5))
+            fig_3d_t = plt.figure(figsize=(5, 2.6))
             ax_3d_t = fig_3d_t.add_subplot(111, projection="3d")
             T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / 2.0**2) * ((0.0 + 2.0)/2.0)
             surf_t = ax_3d_t.plot_surface(TX_3d, TZ_3d, T_3d, cmap=cmap_temp, edgecolor="none", antialiased=True, vmin=250.0, vmax=385.0)
