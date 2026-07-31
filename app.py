@@ -137,144 +137,255 @@ def main():
     st.sidebar.metric("Wall-Plug Efficiency (WPE)", f"{wpe * 100.0:.3f} %")
     st.sidebar.metric("Total Current (A)", f"{I_total:.3f}")
     
-    st.write("")
+    # Wrap in tabs for Multi-Physics Dashboard vs 3D Analyzer
+    tab_dashboard, tab_analyzer = st.tabs(["📊 Multi-Physics Dashboard", "👁️ 3D Cavity Field Analyzer"])
     
-    # 3 columns for 6 reduced viewports of distributions
-    col_long, col_trans2d, col_trans1d = st.columns(3)
-    
-    # Column 1: Longitudinal Profiles (1D along cavity length)
-    with col_long:
-        # Plot 1: Carrier Density N(z)
-        fig_n = plt.figure(figsize=(4.5, 2.3))
-        ax_n = fig_n.add_axes([0.18, 0.20, 0.72, 0.68])
-        ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
-        ax_n.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
-        ax_n.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
-        ax_n.set_ylabel("N (10^18 cm^-3)", color="#8b949e", fontsize=7.5)
-        ax_n.grid(True, linestyle="--", alpha=0.3, color="#233554")
-        ax_n.set_facecolor("#172a45")
-        fig_n.patch.set_facecolor("#0d1117")
-        ax_n.tick_params(colors="#8b949e", labelsize=7.5)
-        for spine in ax_n.spines.values():
-            spine.set_color("#30363d")
-        st.pyplot(fig_n, use_container_width=True)
+    with tab_dashboard:
+        # 3 columns for 6 reduced viewports of distributions
+        col_long, col_trans2d, col_trans1d = st.columns(3)
         
-        # Plot 2: Optical Power P(z)
-        fig_p = plt.figure(figsize=(4.5, 2.3))
-        ax_p = fig_p.add_axes([0.18, 0.20, 0.72, 0.68])
-        ax_p.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0, label="P(z)")
-        ax_p.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
-        ax_p.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
-        ax_p.set_ylabel("Power (mW)", color="#8b949e", fontsize=7.5)
-        ax_p.grid(True, linestyle="--", alpha=0.3, color="#233554")
-        ax_p.set_facecolor("#172a45")
-        fig_p.patch.set_facecolor("#0d1117")
-        ax_p.tick_params(colors="#8b949e", labelsize=7.5)
-        for spine in ax_p.spines.values():
-            spine.set_color("#30363d")
-        st.pyplot(fig_p, use_container_width=True)
+        # Column 1: Longitudinal Profiles (1D along cavity length)
+        with col_long:
+            # Plot 1: Carrier Density N(z)
+            fig_n = plt.figure(figsize=(4.5, 2.3))
+            ax_n = fig_n.add_axes([0.18, 0.20, 0.72, 0.68])
+            ax_n.plot(z_grid, N_prof / 1e18, color="#ff7b72", linewidth=2.0, label="N(z)")
+            ax_n.set_title("Carrier Density N(z)", color="white", fontsize=9, fontweight="bold")
+            ax_n.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
+            ax_n.set_ylabel("N (10^18 cm^-3)", color="#8b949e", fontsize=7.5)
+            ax_n.grid(True, linestyle="--", alpha=0.3, color="#233554")
+            ax_n.set_facecolor("#172a45")
+            fig_n.patch.set_facecolor("#0d1117")
+            ax_n.tick_params(colors="#8b949e", labelsize=7.5)
+            for spine in ax_n.spines.values():
+                spine.set_color("#30363d")
+            st.pyplot(fig_n, use_container_width=True)
+            
+            # Plot 2: Optical Power P(z)
+            fig_p = plt.figure(figsize=(4.5, 2.3))
+            ax_p = fig_p.add_axes([0.18, 0.20, 0.72, 0.68])
+            ax_p.plot(z_grid, P_prof * 1000.0, color="#64ffda", linewidth=2.0, label="P(z)")
+            ax_p.set_title("Optical Power Profile P(z)", color="white", fontsize=9, fontweight="bold")
+            ax_p.set_xlabel("z Position (μm)", color="#8b949e", fontsize=7.5)
+            ax_p.set_ylabel("Power (mW)", color="#8b949e", fontsize=7.5)
+            ax_p.grid(True, linestyle="--", alpha=0.3, color="#233554")
+            ax_p.set_facecolor("#172a45")
+            fig_p.patch.set_facecolor("#0d1117")
+            ax_p.tick_params(colors="#8b949e", labelsize=7.5)
+            for spine in ax_p.spines.values():
+                spine.set_color("#30363d")
+            st.pyplot(fig_p, use_container_width=True)
 
-    # Column 2: 2D Transverse Distributions
-    with col_trans2d:
-        # 2D transverse grid
-        tx = np.linspace(-3.5, 3.5, 40)
-        ty = np.linspace(-2.0, 2.0, 40)
-        TX, TY = np.meshgrid(tx, ty)
-        
-        # Plot 3: 2D Mode intensity
-        fig_m2d = plt.figure(figsize=(4.5, 2.3))
-        ax_m2d = fig_m2d.add_axes([0.18, 0.20, 0.72, 0.68])
-        norm_power = max(0.001, P_opt * 1000.0 / 250.0)
-        I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
-        contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
-        ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
-        ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
-        ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
-        ax_m2d.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_m2d.set_facecolor("#172a45")
-        fig_m2d.patch.set_facecolor("#0d1117")
-        for spine in ax_m2d.spines.values():
-            spine.set_color("#30363d")
-        # Add active region waveguide bounds
-        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
-        ax_m2d.add_patch(rect)
-        ax_m2d.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
-        st.pyplot(fig_m2d, use_container_width=True)
-        
-        # Plot 4: 2D Temperature heat map
-        fig_t2d = plt.figure(figsize=(4.5, 2.3))
-        ax_t2d = fig_t2d.add_axes([0.18, 0.20, 0.72, 0.68])
-        heating_power = max(0.0, I_total * 1.05 - P_opt)
-        delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-        T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
-        contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
-        ax_t2d.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
-        ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
-        ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
-        ax_t2d.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_t2d.set_facecolor("#172a45")
-        fig_t2d.patch.set_facecolor("#0d1117")
-        for spine in ax_t2d.spines.values():
-            spine.set_color("#30363d")
-        ax_t2d.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
-        ax_t2d.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
-        st.pyplot(fig_t2d, use_container_width=True)
+        # Column 2: 2D Transverse Distributions
+        with col_trans2d:
+            # 2D transverse grid
+            tx = np.linspace(-3.5, 3.5, 40)
+            ty = np.linspace(-2.0, 2.0, 40)
+            TX, TY = np.meshgrid(tx, ty)
+            
+            # Plot 3: 2D Mode intensity
+            fig_m2d = plt.figure(figsize=(4.5, 2.3))
+            ax_m2d = fig_m2d.add_axes([0.18, 0.20, 0.72, 0.68])
+            norm_power = max(0.001, P_opt * 1000.0 / 250.0)
+            I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+            contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+            ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
+            ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+            ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+            ax_m2d.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_m2d.set_facecolor("#172a45")
+            fig_m2d.patch.set_facecolor("#0d1117")
+            for spine in ax_m2d.spines.values():
+                spine.set_color("#30363d")
+            # Add active region waveguide bounds
+            rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+            ax_m2d.add_patch(rect)
+            ax_m2d.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+            st.pyplot(fig_m2d, use_container_width=True)
+            
+            # Plot 4: 2D Temperature heat map
+            fig_t2d = plt.figure(figsize=(4.5, 2.3))
+            ax_t2d = fig_t2d.add_axes([0.18, 0.20, 0.72, 0.68])
+            heating_power = max(0.0, I_total * 1.05 - P_opt)
+            delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
+            T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+            contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
+            ax_t2d.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
+            ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+            ax_t2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+            ax_t2d.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_t2d.set_facecolor("#172a45")
+            fig_t2d.patch.set_facecolor("#0d1117")
+            for spine in ax_t2d.spines.values():
+                spine.set_color("#30363d")
+            ax_t2d.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
+            ax_t2d.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
+            st.pyplot(fig_t2d, use_container_width=True)
 
-    # Column 3: 1D Transverse Slices
-    with col_trans1d:
-        # Plot 5: Horizontal slice
-        fig_sh = plt.figure(figsize=(4.5, 2.3))
-        ax_sh = fig_sh.add_axes([0.18, 0.20, 0.72, 0.68])
-        I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
-        ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
-        ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
-        ax_sh.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
-        ax_sh.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
-        ax_sh.grid(True, linestyle="--", alpha=0.3, color="#233554")
-        ax_sh.set_facecolor("#172a45")
-        fig_sh.patch.set_facecolor("#0d1117")
-        ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_sh.set_ylim(0.0, 1.2)
-        for spine in ax_sh.spines.values():
-            spine.set_color("#30363d")
-        st.pyplot(fig_sh, use_container_width=True)
+        # Column 3: 1D Transverse Slices
+        with col_trans1d:
+            # Plot 5: Horizontal slice
+            fig_sh = plt.figure(figsize=(4.5, 2.3))
+            ax_sh = fig_sh.add_axes([0.18, 0.20, 0.72, 0.68])
+            I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+            ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
+            ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+            ax_sh.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+            ax_sh.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+            ax_sh.grid(True, linestyle="--", alpha=0.3, color="#233554")
+            ax_sh.set_facecolor("#172a45")
+            fig_sh.patch.set_facecolor("#0d1117")
+            ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_sh.set_ylim(0.0, 1.2)
+            for spine in ax_sh.spines.values():
+                spine.set_color("#30363d")
+            st.pyplot(fig_sh, use_container_width=True)
+            
+            # Plot 6: Vertical slice
+            fig_sv = plt.figure(figsize=(4.5, 2.3))
+            ax_sv = fig_sv.add_axes([0.18, 0.20, 0.72, 0.68])
+            I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+            ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
+            ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
+            ax_sv.set_xlabel("y height (μm)", color="#8b949e", fontsize=7.5)
+            ax_sv.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
+            ax_sv.grid(True, linestyle="--", alpha=0.3, color="#233554")
+            ax_sv.set_facecolor("#172a45")
+            fig_sv.patch.set_facecolor("#0d1117")
+            ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_sv.set_ylim(0.0, 1.2)
+            for spine in ax_sv.spines.values():
+                spine.set_color("#30363d")
+            st.pyplot(fig_sv, use_container_width=True)
+            
+        # Row 3: Design Guidance / Physical Insight
+        st.subheader("💡 Physical Insights & Design Guidance")
         
-        # Plot 6: Vertical slice
-        fig_sv = plt.figure(figsize=(4.5, 2.3))
-        ax_sv = fig_sv.add_axes([0.18, 0.20, 0.72, 0.68])
-        I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
-        ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
-        ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
-        ax_sv.set_xlabel("y height (μm)", color="#8b949e", fontsize=7.5)
-        ax_sv.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
-        ax_sv.grid(True, linestyle="--", alpha=0.3, color="#233554")
-        ax_sv.set_facecolor("#172a45")
-        fig_sv.patch.set_facecolor("#0d1117")
-        ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_sv.set_ylim(0.0, 1.2)
-        for spine in ax_sv.spines.values():
-            spine.set_color("#30363d")
-        st.pyplot(fig_sv, use_container_width=True)
+        # Dynamic text based on current settings
+        guidance = []
         
-    # Row 3: Design Guidance / Physical Insight
-    st.subheader("💡 Physical Insights & Design Guidance")
-    
-    # Dynamic text based on current settings
-    guidance = []
-    
-    if abs(R1 - R2) > 0.4:
-        guidance.append("👉 **Facet Asymmetry:** The large difference between R1 (HR) and R2 (AR) skews the optical field distribution strongly towards the front facet (z = L). This is standard for edge-emitting diodes to maximize single-facet output power, but it causes significant **Spatial Hole Burning (SHB)**, which locally depletes carriers near the output facet.")
-    else:
-        guidance.append("👉 **Symmetric Cavity:** The symmetric mirror reflectivities yield a balanced, symmetric internal optical power and carrier density profile. While this is structurally simple, it results in equal power emission from both facets, which decreases the usable single-facet WPE unless external combining is used.")
+        if abs(R1 - R2) > 0.4:
+            guidance.append("👉 **Facet Asymmetry:** The large difference between R1 (HR) and R2 (AR) skews the optical field distribution strongly towards the front facet (z = L). This is standard for edge-emitting diodes to maximize single-facet output power, but it causes significant **Spatial Hole Burning (SHB)**, which locally depletes carriers near the output facet.")
+        else:
+            guidance.append("👉 **Symmetric Cavity:** The symmetric mirror reflectivities yield a balanced, symmetric internal optical power and carrier density profile. While this is structurally simple, it results in equal power emission from both facets, which decreases the usable single-facet WPE unless external combining is used.")
+            
+        if T0 > 320:
+            guidance.append("👉 **Thermal Degradation:** High ambient temperature ($T_0 > 320\text{ K}$) degrades performance. The logarithmic gain coefficient $g_0$ is reduced, and the transparency carrier density $N_{\text{tr}}$ is increased, requiring higher injection current to maintain threshold. Auger recombination losses also scale as $T_0^2$, causing thermal droop.")
+            
+        if P_opt < 0.001:
+            guidance.append("👉 **Lasing Threshold:** The current injected is insufficient to overcome the cavity mirror losses ($\alpha_m = \\frac{1}{2L}\\ln(\\frac{1}{R_1 R_2})$) and internal loss ($\alpha_i = 10\text{ cm}^{-1}$). Increase the injection current or mirror reflectivities to achieve lasing.")
+            
+        for item in guidance:
+            st.write(item)
+
+    with tab_analyzer:
+        st.subheader("👁️ Real-Time 3D Cavity Field Analysis")
+        st.markdown("This analyzer projects the 2D transverse distributions along the 51 cavity $z$-slices to reconstruct the full 3D spatial field inside the laser.")
         
-    if T0 > 320:
-        guidance.append("👉 **Thermal Degradation:** High ambient temperature ($T_0 > 320\text{ K}$) degrades performance. The logarithmic gain coefficient $g_0$ is reduced, and the transparency carrier density $N_{\text{tr}}$ is increased, requiring higher injection current to maintain threshold. Auger recombination losses also scale as $T_0^2$, causing thermal droop.")
+        # Slice Selection Slider
+        z_sel = st.slider("Inspect Cavity Position z (μm)", min_value=0.0, max_value=L_um, value=L_um, step=L_um/50.0)
+        idx = int(np.clip(round(z_sel / (L_um / 50.0)), 0, 50))
         
-    if P_opt < 0.001:
-        guidance.append("👉 **Lasing Threshold:** The current injected is insufficient to overcome the cavity mirror losses ($\alpha_m = \\frac{1}{2L}\\ln(\\frac{1}{R_1 R_2})$) and internal loss ($\alpha_i = 10\text{ cm}^{-1}$). Increase the injection current or mirror reflectivities to achieve lasing.")
+        # Local metrics cards
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Local z Position", f"{z_grid[idx]:.1f} μm")
+        col_m2.metric("Local Carrier Density N(z)", f"{N_prof[idx] / 1e18:.3f} × 10¹⁸ cm⁻³")
+        col_m3.metric("Local Optical Power P(z)", f"{P_prof[idx] * 1000.0:.2f} mW")
         
-    for item in guidance:
-        st.write(item)
+        # 2D transverse slices at selected z
+        col_slice_mode, col_slice_temp = st.columns(2)
+        
+        with col_slice_mode:
+            tx = np.linspace(-3.5, 3.5, 40)
+            ty = np.linspace(-2.0, 2.0, 40)
+            TX, TY = np.meshgrid(tx, ty)
+            
+            fig_m2d_z = plt.figure(figsize=(4.5, 2.3))
+            ax_m2d_z = fig_m2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
+            norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
+            I_mode_z = norm_power_z * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+            contour_m_z = ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+            ax_m2d_z.set_title(f"Local Optical Mode at z = {z_grid[idx]:.1f} μm", color="white", fontsize=9, fontweight="bold")
+            ax_m2d_z.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+            ax_m2d_z.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+            ax_m2d_z.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_m2d_z.set_facecolor("#172a45")
+            fig_m2d_z.patch.set_facecolor("#0d1117")
+            for spine in ax_m2d_z.spines.values():
+                spine.set_color("#30363d")
+            rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+            ax_m2d_z.add_patch(rect)
+            ax_m2d_z.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+            st.pyplot(fig_m2d_z, use_container_width=True)
+            
+        with col_slice_temp:
+            fig_t2d_z = plt.figure(figsize=(4.5, 2.3))
+            ax_t2d_z = fig_t2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
+            # Scale temperature rise based on local power ratio
+            P_avg = max(1e-5, np.mean(P_prof))
+            T_scale_z = P_prof[idx] / P_avg
+            heating_power = max(0.0, I_total * 1.05 - P_opt)
+            delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
+            T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+            
+            contour_t_z = ax_t2d_z.contourf(TX, TY, T_trans_z, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
+            ax_t2d_z.set_title(f"Local Temperature at z = {z_grid[idx]:.1f} μm", color="white", fontsize=9, fontweight="bold")
+            ax_t2d_z.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
+            ax_t2d_z.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
+            ax_t2d_z.tick_params(colors="#8b949e", labelsize=7.5)
+            ax_t2d_z.set_facecolor("#172a45")
+            fig_t2d_z.patch.set_facecolor("#0d1117")
+            for spine in ax_t2d_z.spines.values():
+                spine.set_color("#30363d")
+            ax_t2d_z.axhline(y=-2.0, color="white", linestyle="-", linewidth=1.2, alpha=0.8)
+            ax_t2d_z.text(0, -1.8, "Copper Heat Sink Mount (T0)", color="white", fontsize=6.5, ha="center", fontweight="bold")
+            st.pyplot(fig_t2d_z, use_container_width=True)
+            
+        # 3D surface plots showing complete cavity profile
+        st.markdown("### 3D Field Distributions ($y=0$ lateral slice along cavity length $z$)")
+        col_3d_mode, col_3d_temp = st.columns(2)
+        
+        TX_3d, TZ_3d = np.meshgrid(tx, z_grid)
+        
+        with col_3d_mode:
+            fig_3d_m = plt.figure(figsize=(5, 3.5))
+            ax_3d_m = fig_3d_m.add_subplot(111, projection="3d")
+            I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / 1.5**2)
+            surf_m = ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
+            ax_3d_m.set_title("3D Optical Intensity |Ψ(x, 0, z)|²", color="white", fontsize=9.5, fontweight="bold")
+            ax_3d_m.set_xlabel("x width (μm)", color="#8b949e", fontsize=7)
+            ax_3d_m.set_ylabel("z Position (μm)", color="#8b949e", fontsize=7)
+            ax_3d_m.set_zlabel("Intensity", color="#8b949e", fontsize=7)
+            ax_3d_m.xaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_m.yaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_m.zaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_m.tick_params(colors="#8b949e", labelsize=6.5)
+            ax_3d_m.xaxis.label.set_color("#8b949e")
+            ax_3d_m.yaxis.label.set_color("#8b949e")
+            ax_3d_m.zaxis.label.set_color("#8b949e")
+            fig_3d_m.patch.set_facecolor("#0d1117")
+            ax_3d_m.set_facecolor("#0d1117")
+            st.pyplot(fig_3d_m, use_container_width=True)
+            
+        with col_3d_temp:
+            fig_3d_t = plt.figure(figsize=(5, 3.5))
+            ax_3d_t = fig_3d_t.add_subplot(111, projection="3d")
+            T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / 2.0**2) * ((0.0 + 2.0)/2.0)
+            surf_t = ax_3d_t.plot_surface(TX_3d, TZ_3d, T_3d, cmap=cmap_temp, edgecolor="none", antialiased=True, vmin=250.0, vmax=385.0)
+            ax_3d_t.set_title("3D Temperature Profile T(x, 0, z)", color="white", fontsize=9.5, fontweight="bold")
+            ax_3d_t.set_xlabel("x width (μm)", color="#8b949e", fontsize=7)
+            ax_3d_t.set_ylabel("z Position (μm)", color="#8b949e", fontsize=7)
+            ax_3d_t.set_zlabel("Temp (K)", color="#8b949e", fontsize=7)
+            ax_3d_t.xaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_t.yaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_t.zaxis.set_pane_color((0.09, 0.16, 0.27, 1.0))
+            ax_3d_t.tick_params(colors="#8b949e", labelsize=6.5)
+            ax_3d_t.xaxis.label.set_color("#8b949e")
+            ax_3d_t.yaxis.label.set_color("#8b949e")
+            ax_3d_t.zaxis.label.set_color("#8b949e")
+            fig_3d_t.patch.set_facecolor("#0d1117")
+            ax_3d_t.set_facecolor("#0d1117")
+            st.pyplot(fig_3d_t, use_container_width=True)
 
 if __name__ == "__main__":
     main()
