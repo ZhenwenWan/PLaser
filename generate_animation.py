@@ -69,7 +69,7 @@ width, height = 1280, 720
 total_frames = 360  # 24 seconds at 15 FPS
 
 # Initialize OpenCV VideoWriter with HTML5-compatible avc1 (H.264) codec
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+fourcc = cv2.VideoWriter_fourcc(*'avc1')
 video = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
 
 if not video.isOpened():
@@ -352,10 +352,11 @@ for frame in range(total_frames):
         # Plot 3: 2D Mode intensity
         w_waist = 1.5 * (w_active / 2.8)
         d_waist = 0.5 * (d_active / 0.342)
+        w_thermal = 2.0 * (w_active / 2.8)
         
         ax_trans_mode.clear()
-        I_mode = norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
-        ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+        I_mode = 0.3 * norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
+        ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=0.36)
         ax_trans_mode.set_title("Mode Intensity Shape |Psi|^2", color="white", fontsize=9, fontweight="bold")
         ax_trans_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
         ax_trans_mode.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
@@ -370,7 +371,7 @@ for frame in range(total_frames):
         ax_trans_temp.clear()
         heating_power = max(0.0, I_total * 1.05 - P_opt)
         delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-        T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+        T_trans = T0 + delta_T * np.exp(-TX**2 / w_thermal**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
         ax_trans_temp.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
         ax_trans_temp.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
         ax_trans_temp.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
@@ -383,27 +384,27 @@ for frame in range(total_frames):
         
         # Plot 5: Horizontal slice
         ax_horiz_mode.clear()
-        I_horiz = norm_power * np.exp(-tx**2 / w_waist**2)
+        I_horiz = 0.3 * norm_power * np.exp(-tx**2 / w_waist**2)
         ax_horiz_mode.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0)
         ax_horiz_mode.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
         ax_horiz_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
         ax_horiz_mode.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
         ax_horiz_mode.grid(True, linestyle="--", alpha=0.3, color="#233554")
         ax_horiz_mode.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_horiz_mode.set_ylim(0.0, 1.2)
+        ax_horiz_mode.set_ylim(0.0, 0.36)
         for spine in ax_horiz_mode.spines.values():
             spine.set_color("#30363d")
             
         # Plot 6: Vertical slice
         ax_vert_mode.clear()
-        I_vert = norm_power * np.exp(-ty**2 / d_waist**2)
+        I_vert = 0.3 * norm_power * np.exp(-ty**2 / d_waist**2)
         ax_vert_mode.plot(ty, I_vert, color="#ff33cc", linewidth=2.0)
         ax_vert_mode.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
         ax_vert_mode.set_xlabel("y height (um)", color="#8b949e", fontsize=7.5)
         ax_vert_mode.set_ylabel("Intensity", color="#8b949e", fontsize=7.5)
         ax_vert_mode.grid(True, linestyle="--", alpha=0.3, color="#233554")
         ax_vert_mode.tick_params(colors="#8b949e", labelsize=7.5)
-        ax_vert_mode.set_ylim(0.0, 1.2)
+        ax_vert_mode.set_ylim(0.0, 0.36)
         for spine in ax_vert_mode.spines.values():
             spine.set_color("#30363d")
             
@@ -414,11 +415,12 @@ for frame in range(total_frames):
         # 3D Cavity Analyzer Mode (Local Slices & 3D Surface plots)
         w_waist_z = 1.5 * (w_active / 2.8)
         d_waist_z = 0.5 * (d_active / 0.342)
+        w_thermal = 2.0 * (w_active / 2.8)
         
         ax_m2d_z.clear()
         norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
-        I_mode_z = norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
-        ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+        I_mode_z = 0.3 * norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
+        ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=0.36)
         ax_m2d_z.set_title(f"Local Optical Mode at z = {z_sel:.1f} um", color="white", fontsize=9, fontweight="bold")
         ax_m2d_z.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
         ax_m2d_z.set_ylabel("y height (um)", color="#8b949e", fontsize=7.5)
@@ -434,7 +436,7 @@ for frame in range(total_frames):
         T_scale_z = P_prof[idx] / P_avg
         heating_power = max(0.0, I_total * 1.05 - P_opt)
         delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-        T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+        T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / w_thermal**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
         ax_t2d_z.contourf(TX, TY, T_trans_z, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
         ax_t2d_z.set_title(f"Local Temperature at z = {z_sel:.1f} um", color="white", fontsize=9, fontweight="bold")
         ax_t2d_z.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
@@ -448,8 +450,8 @@ for frame in range(total_frames):
         # 3D surface plots (rendered at flat 1.3 height)
         ax_3d_m.clear()
         TX_3d, TZ_3d = np.meshgrid(tx, z_grid)
-        I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
-        ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
+        I_3d = 0.3 * (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
+        ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=0.36)
         ax_3d_m.set_title("3D Optical Intensity |Psi(x, 0, z)|^2", color="white", fontsize=9.5, fontweight="bold")
         ax_3d_m.set_xlabel("x width (um)", color="#8b949e", fontsize=7)
         ax_3d_m.set_ylabel("z Position (um)", color="#8b949e", fontsize=7)
@@ -462,7 +464,7 @@ for frame in range(total_frames):
         ax_3d_m.tick_params(colors="#8b949e", labelsize=6.5)
         
         ax_3d_t.clear()
-        T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / 2.0**2) * ((0.0 + 2.0)/2.0)
+        T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / w_thermal**2)
         ax_3d_t.plot_surface(TX_3d, TZ_3d, T_3d, cmap=cmap_temp, edgecolor="none", antialiased=True, vmin=250.0, vmax=385.0)
         ax_3d_t.set_title("3D Temperature Profile T(x, 0, z)", color="white", fontsize=9.5, fontweight="bold")
         ax_3d_t.set_xlabel("x width (um)", color="#8b949e", fontsize=7)

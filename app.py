@@ -249,13 +249,14 @@ def main():
             
             w_waist = 1.5 * (w_active / 2.8)
             d_waist = 0.5 * (d_active / 0.342)
+            w_thermal = 2.0 * (w_active / 2.8)
             
             # Plot 3: 2D Mode intensity
             fig_m2d = plt.figure(figsize=(4.5, 2.3))
             ax_m2d = fig_m2d.add_axes([0.18, 0.20, 0.72, 0.68])
             norm_power = max(0.001, P_opt * 1000.0 / 250.0)
-            I_mode = norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
-            contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+            I_mode = 0.3 * norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
+            contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=0.36)
             ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
             ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
             ax_m2d.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -275,7 +276,7 @@ def main():
             ax_t2d = fig_t2d.add_axes([0.18, 0.20, 0.72, 0.68])
             heating_power = max(0.0, I_total * 1.05 - P_opt)
             delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-            T_trans = T0 + delta_T * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+            T_trans = T0 + delta_T * np.exp(-TX**2 / w_thermal**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
             contour_t = ax_t2d.contourf(TX, TY, T_trans, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
             ax_t2d.set_title("Temperature Heat Map T(x,y)", color="white", fontsize=9, fontweight="bold")
             ax_t2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
@@ -294,7 +295,7 @@ def main():
             # Plot 5: Horizontal slice
             fig_sh = plt.figure(figsize=(4.5, 2.3))
             ax_sh = fig_sh.add_axes([0.18, 0.20, 0.72, 0.68])
-            I_horiz = norm_power * np.exp(-tx**2 / w_waist**2)
+            I_horiz = 0.3 * norm_power * np.exp(-tx**2 / w_waist**2)
             ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
             ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
             ax_sh.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
@@ -303,7 +304,7 @@ def main():
             ax_sh.set_facecolor("#172a45")
             fig_sh.patch.set_facecolor("#0d1117")
             ax_sh.tick_params(colors="#8b949e", labelsize=7.5)
-            ax_sh.set_ylim(0.0, 1.2)
+            ax_sh.set_ylim(0.0, 0.36)
             for spine in ax_sh.spines.values():
                 spine.set_color("#30363d")
             st.pyplot(fig_sh, use_container_width=True)
@@ -311,7 +312,7 @@ def main():
             # Plot 6: Vertical slice
             fig_sv = plt.figure(figsize=(4.5, 2.3))
             ax_sv = fig_sv.add_axes([0.18, 0.20, 0.72, 0.68])
-            I_vert = norm_power * np.exp(-ty**2 / d_waist**2)
+            I_vert = 0.3 * norm_power * np.exp(-ty**2 / d_waist**2)
             ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
             ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
             ax_sv.set_xlabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -320,7 +321,7 @@ def main():
             ax_sv.set_facecolor("#172a45")
             fig_sv.patch.set_facecolor("#0d1117")
             ax_sv.tick_params(colors="#8b949e", labelsize=7.5)
-            ax_sv.set_ylim(0.0, 1.2)
+            ax_sv.set_ylim(0.0, 0.36)
             for spine in ax_sv.spines.values():
                 spine.set_color("#30363d")
             st.pyplot(fig_sv, use_container_width=True)
@@ -356,12 +357,13 @@ def main():
         with col_slice_mode:
             w_waist_z = 1.5 * (w_active / 2.8)
             d_waist_z = 0.5 * (d_active / 0.342)
+            w_thermal = 2.0 * (w_active / 2.8)
             
             fig_m2d_z = plt.figure(figsize=(4.5, 2.3))
             ax_m2d_z = fig_m2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
             norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
-            I_mode_z = norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
-            contour_m_z = ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
+            I_mode_z = 0.3 * norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
+            contour_m_z = ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=0.36)
             ax_m2d_z.set_title(f"Local Optical Mode at z = {z_grid[idx]:.1f} μm", color="white", fontsize=9, fontweight="bold")
             ax_m2d_z.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
             ax_m2d_z.set_ylabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -383,7 +385,7 @@ def main():
             T_scale_z = P_prof[idx] / P_avg
             heating_power = max(0.0, I_total * 1.05 - P_opt)
             delta_T = 18.0 * heating_power * (T0 / 300.0)**1.5
-            T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / 2.0**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
+            T_trans_z = T0 + delta_T * T_scale_z * np.exp(-TX**2 / w_thermal**2) * ((TY + 2.0)/2.0) * np.exp(-TY**2 / 0.8**2)
             
             contour_t_z = ax_t2d_z.contourf(TX, TY, T_trans_z, levels=15, cmap=cmap_temp, vmin=250.0, vmax=385.0)
             ax_t2d_z.set_title(f"Local Temperature at z = {z_grid[idx]:.1f} μm", color="white", fontsize=9, fontweight="bold")
@@ -406,8 +408,8 @@ def main():
         with col_3d_mode:
             fig_3d_m = plt.figure(figsize=(5, 1.3))
             ax_3d_m = fig_3d_m.add_subplot(111, projection="3d")
-            I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
-            surf_m = ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
+            I_3d = 0.3 * (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
+            surf_m = ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=0.36)
             ax_3d_m.set_title("3D Optical Intensity |Ψ(x, 0, z)|²", color="white", fontsize=9.5, fontweight="bold")
             ax_3d_m.set_xlabel("x width (μm)", color="#8b949e", fontsize=7)
             ax_3d_m.set_ylabel("z Position (μm)", color="#8b949e", fontsize=7)
@@ -429,7 +431,7 @@ def main():
         with col_3d_temp:
             fig_3d_t = plt.figure(figsize=(5, 1.3))
             ax_3d_t = fig_3d_t.add_subplot(111, projection="3d")
-            T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / 2.0**2) * ((0.0 + 2.0)/2.0)
+            T_3d = T0 + delta_T * (P_prof[:, None] / P_avg) * np.exp(-TX_3d**2 / w_thermal**2)
             surf_t = ax_3d_t.plot_surface(TX_3d, TZ_3d, T_3d, cmap=cmap_temp, edgecolor="none", antialiased=True, vmin=250.0, vmax=385.0)
             ax_3d_t.set_title("3D Temperature Profile T(x, 0, z)", color="white", fontsize=9.5, fontweight="bold")
             ax_3d_t.set_xlabel("x width (μm)", color="#8b949e", fontsize=7)

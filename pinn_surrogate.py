@@ -99,6 +99,13 @@ class PINNSurrogate:
         N_profile = np.clip(out_vec[3:54], a_min=1.0e15, a_max=None)
         P_profile = np.clip(out_vec[54:105], a_min=0.0, a_max=None)
         
+        # Smooth profiles to ensure physical fluctuations are smooth
+        kernel = np.array([0.05, 0.20, 0.50, 0.20, 0.05], dtype=np.float32)
+        padded_N = np.pad(N_profile, pad_width=2, mode='edge')
+        N_profile = np.convolve(padded_N, kernel, mode='valid')
+        padded_P = np.pad(P_profile, pad_width=2, mode='edge')
+        P_profile = np.convolve(padded_P, kernel, mode='valid')
+        
         z_grid = np.linspace(0.0, L_um, 51)
         
         return {
