@@ -32,6 +32,7 @@ To operate high-power telecom lasers without thermal droop or degradation, the l
 
 ### Panel 3: 2D Transverse Model (2D Elmer FEM Cross-Section Solver)
 The 2D transverse plane cross-section ($x-y$ plane shown in **Image b**, perpendicular to light propagation) governs optical waveguide modal confinement and local physical properties. The reference **2D Elmer FEM Solver** solves the coupled Poisson (electrostatics), drift-diffusion (carriers), vector Helmholtz (wave optics), and thermal diffusion differential equations.
+* **Dynamic Waveguide Geometry:** Rather than assuming static coordinates, the active region width $w_{\text{active}}$ and thickness $d_{\text{active}}$ are fully parameterized inputs, allowing the waveguide boundaries and mode waist profiles to dynamically adapt.
 * **Coordinate Mapping:** The Elmer solvers work on the 2D cross-section coordinate domain $[−6, 6] \times [0, 4.23]\,\mu\text{m}$. This domain is mapped directly to the app's coordinate system where $x_{app} = y_{Elmer}$ (cropped to $[-3.5, 3.5]$) and $y_{app} = z_{Elmer} - 2\,\mu\text{m}$, which shifts the active region core center to zero.
 
 ### Panel 4: 1D Longitudinal Cavity (1D Longitudinal Cavity Architecture)
@@ -48,7 +49,7 @@ The PLaser Streamlit application features two distinct dashboards tailored for d
 
 ### View Mode 1: Multi-Physics Dashboard
 This mode provides a global overview of the coupled electro-optico-thermal performance.
-* **Left Sidebar Dashboard (Design Parameters & Operating Conditions):** Features interactive sliders for mirror facet coatings ($R_1, R_2$), cavity length ($L$), ambient temperature ($T_0$), and active region current ($I_{\text{act}}$).
+* **Left Sidebar Dashboard (Design Parameters & Operating Conditions):** Features interactive sliders for mirror facet coatings ($R_1, R_2$), cavity length ($L$), active region width ($w_{\text{active}}$), active region thickness ($d_{\text{active}}$), ambient temperature ($T_0$), and active region current ($I_{\text{act}}$).
 * **Right Main Panel (6 Viewports):**
   1. **Carrier Density $N(z)$:** Tracks longitudinal carrier distribution and highlights the SHB depletion dip.
   2. **Optical Power $P(z)$:** Displays the optical power profile surging towards the AR facet.
@@ -123,6 +124,7 @@ python -m streamlit run app.py
 ### 4.1 Physics-Informed Neural Network (PINN) Loss Functions
 Instead of relying purely on data interpolation, PLaser integrates physical laws directly into the neural network backpropagation pathway. The training loss function enforces local carrier continuity along the cavity grid:
 $$G_{\text{inj}} - R_{\text{rec}}(N(z)) - R_{\text{stim}}(N(z), P_{\text{tot}}(z)) = 0$$
+where the active region cross-sectional area $A_{\text{act}} = w_{\text{active}} \times d_{\text{active}}$ (natively parameterizing the 2D waveguide height and width dimensions) dynamically scales the carrier generation rate $G_{\text{inj}} = I_{\text{active}} / (q_0 \cdot L \cdot A_{\text{act}})$ and the stimulated emission rate $R_{\text{stim}} = (g(N) \cdot P) / (A_{\text{act}} \cdot E_{\text{phot}})$.
 
 This constraint prevents non-physical predictions, securing stability and generalization bounds even when parameters are swept near the highly nonlinear threshold limits ($I \approx I_{\text{th}}$) or under severe thermal roll-off ($T_0 > 320\text{ K}$).
 

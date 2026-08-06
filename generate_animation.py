@@ -69,7 +69,7 @@ width, height = 1280, 720
 total_frames = 360  # 24 seconds at 15 FPS
 
 # Initialize OpenCV VideoWriter with HTML5-compatible avc1 (H.264) codec
-fourcc = cv2.VideoWriter_fourcc(*'avc1')
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 video = cv2.VideoWriter(str(video_path), fourcc, fps, (width, height))
 
 if not video.isOpened():
@@ -86,6 +86,16 @@ r2_seq = np.ones(total_frames) * 0.05
 L_seq = np.ones(total_frames) * 300.0
 T0_seq = np.ones(total_frames) * 300.0
 I_seq = np.ones(total_frames) * 0.13
+w_seq = np.ones(total_frames) * 2.8
+d_seq = np.ones(total_frames) * 0.342
+
+# Sweep Ridge Width w (Frames 0 to 15): 2.8 -> 4.0
+w_seq[0:15] = np.linspace(2.8, 4.0, 15)
+w_seq[15:30] = np.linspace(4.0, 2.8, 15)
+
+# Sweep Active Thickness d (Frames 15 to 30): 0.342 -> 0.15 -> 0.342
+d_seq[15:22] = np.linspace(0.342, 0.15, 7)
+d_seq[22:30] = np.linspace(0.15, 0.342, 8)
 
 # Sweep R2 (Frames 30 to 80): 0.05 -> 0.45 -> 0.05
 r2_seq[30:55] = np.linspace(0.05, 0.45, 25)
@@ -172,9 +182,19 @@ for frame in range(total_frames):
     L = L_seq[frame]
     T0 = T0_seq[frame]
     I_active = I_seq[frame]
+    w_active = w_seq[frame]
+    d_active = d_seq[frame]
     
     # Run PINN prediction
-    res = surrogate.predict(R1=r1, R2=r2, L_um=L, T0=T0, I_active=I_active)
+    res = surrogate.predict(
+        R1=r1,
+        R2=r2,
+        L_um=L,
+        T0=T0,
+        I_active=I_active,
+        w_active_um=w_active,
+        d_active_um=d_active
+    )
     
     P_opt = res["P_opt"]
     P_opt_mw = P_opt * 1000.0
@@ -240,22 +260,29 @@ for frame in range(total_frames):
             ax_sidebar.plot(0.08 + 0.84 * fraction, y, marker="o", color="#58a6ff", ms=6)
 
         r1_frac = (r1 - 0.1) / (0.95 - 0.1)
-        draw_slider(0.67, "Left Mirror R1 (HR)", f"{r1:.2f}", r1_frac)
+        draw_slider(0.70, "Left Mirror R1 (HR)", f"{r1:.2f}", r1_frac)
         
         r2_frac = (r2 - 0.05) / (0.50 - 0.05)
-        draw_slider(0.59, "Right Mirror R2 (AR)", f"{r2:.2f}", r2_frac)
+        draw_slider(0.65, "Right Mirror R2 (AR)", f"{r2:.2f}", r2_frac)
         
         L_frac = (L - 100) / (1000 - 100)
-        draw_slider(0.51, "Cavity Length L (um)", f"{L:.0f}", L_frac)
+        draw_slider(0.60, "Cavity Length L (um)", f"{L:.0f}", L_frac)
+        
+        # Geometry sliders
+        w_frac = (w_active - 1.5) / (4.0 - 1.5)
+        draw_slider(0.54, "Active Width w (um)", f"{w_active:.2f}", w_frac)
+        
+        d_frac = (d_active - 0.10) / (0.50 - 0.10)
+        draw_slider(0.48, "Active Thickness d (um)", f"{d_active:.3f}", d_frac)
         
         # Operating Conditions header
-        ax_sidebar.text(0.08, 0.44, "Operating Conditions", color="#58a6ff", fontsize=11, fontweight="bold")
+        ax_sidebar.text(0.08, 0.41, "Operating Conditions", color="#58a6ff", fontsize=11, fontweight="bold")
         
         T0_frac = (T0 - 250) / (360 - 250)
-        draw_slider(0.38, "Ambient Temperature T0 (K)", f"{T0:.0f}", T0_frac)
+        draw_slider(0.35, "Ambient Temperature T0 (K)", f"{T0:.0f}", T0_frac)
         
         I_frac = (I_active - 0.01) / (0.50 - 0.01)
-        draw_slider(0.30, "Injection Current (A)", f"{I_active:.2f}", I_frac)
+        draw_slider(0.29, "Injection Current (A)", f"{I_active:.2f}", I_frac)
         
         # Metrics cards
         rect = plt.Rectangle((0.08, 0.03), 0.84, 0.21, facecolor="#1f242c", edgecolor="#30363d", lw=1, transform=ax_sidebar.transData)
@@ -323,8 +350,11 @@ for frame in range(total_frames):
             spine.set_color("#30363d")
             
         # Plot 3: 2D Mode intensity
+        w_waist = 1.5 * (w_active / 2.8)
+        d_waist = 0.5 * (d_active / 0.342)
+        
         ax_trans_mode.clear()
-        I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+        I_mode = norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
         ax_trans_mode.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
         ax_trans_mode.set_title("Mode Intensity Shape |Psi|^2", color="white", fontsize=9, fontweight="bold")
         ax_trans_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
@@ -332,9 +362,9 @@ for frame in range(total_frames):
         ax_trans_mode.tick_params(colors="#8b949e", labelsize=7.5)
         for spine in ax_trans_mode.spines.values():
             spine.set_color("#30363d")
-        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+        rect = plt.Rectangle((-w_active/2.0, -d_active/2.0), w_active, d_active, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
         ax_trans_mode.add_patch(rect)
-        ax_trans_mode.text(0, -0.6, "Active Region (2.8 x 0.342 um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+        ax_trans_mode.text(0, -d_active/2.0 - 0.3, f"Active Region ({w_active:.1f} x {d_active:.3f} um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
         
         # Plot 4: 2D Temperature heat map
         ax_trans_temp.clear()
@@ -353,7 +383,7 @@ for frame in range(total_frames):
         
         # Plot 5: Horizontal slice
         ax_horiz_mode.clear()
-        I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+        I_horiz = norm_power * np.exp(-tx**2 / w_waist**2)
         ax_horiz_mode.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0)
         ax_horiz_mode.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
         ax_horiz_mode.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
@@ -366,7 +396,7 @@ for frame in range(total_frames):
             
         # Plot 6: Vertical slice
         ax_vert_mode.clear()
-        I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+        I_vert = norm_power * np.exp(-ty**2 / d_waist**2)
         ax_vert_mode.plot(ty, I_vert, color="#ff33cc", linewidth=2.0)
         ax_vert_mode.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
         ax_vert_mode.set_xlabel("y height (um)", color="#8b949e", fontsize=7.5)
@@ -382,9 +412,12 @@ for frame in range(total_frames):
         
     else:
         # 3D Cavity Analyzer Mode (Local Slices & 3D Surface plots)
+        w_waist_z = 1.5 * (w_active / 2.8)
+        d_waist_z = 0.5 * (d_active / 0.342)
+        
         ax_m2d_z.clear()
         norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
-        I_mode_z = norm_power_z * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+        I_mode_z = norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
         ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
         ax_m2d_z.set_title(f"Local Optical Mode at z = {z_sel:.1f} um", color="white", fontsize=9, fontweight="bold")
         ax_m2d_z.set_xlabel("x width (um)", color="#8b949e", fontsize=7.5)
@@ -392,9 +425,9 @@ for frame in range(total_frames):
         ax_m2d_z.tick_params(colors="#8b949e", labelsize=7.5)
         for spine in ax_m2d_z.spines.values():
             spine.set_color("#30363d")
-        rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+        rect = plt.Rectangle((-w_active/2.0, -d_active/2.0), w_active, d_active, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
         ax_m2d_z.add_patch(rect)
-        ax_m2d_z.text(0, -0.6, "Active Region (2.8 x 0.342 um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+        ax_m2d_z.text(0, -d_active/2.0 - 0.3, f"Active Region ({w_active:.1f} x {d_active:.3f} um)", color="white", fontsize=6.5, ha="center", alpha=0.7)
         
         ax_t2d_z.clear()
         P_avg = max(1e-5, np.mean(P_prof))
@@ -415,7 +448,7 @@ for frame in range(total_frames):
         # 3D surface plots (rendered at flat 1.3 height)
         ax_3d_m.clear()
         TX_3d, TZ_3d = np.meshgrid(tx, z_grid)
-        I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / 1.5**2)
+        I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
         ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
         ax_3d_m.set_title("3D Optical Intensity |Psi(x, 0, z)|^2", color="white", fontsize=9.5, fontweight="bold")
         ax_3d_m.set_xlabel("x width (um)", color="#8b949e", fontsize=7)

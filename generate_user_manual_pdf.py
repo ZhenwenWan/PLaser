@@ -136,8 +136,8 @@ with PdfPages(str(output_pdf_path)) as pdf:
     y -= 0.02
     p3_txt = (
         "The 2D transverse plane cross-section governs optical waveguide modal confinement and localized physics. "
-        "The reference 2D Elmer FEM solver solves the coupled Poisson (electrostatics), drift-diffusion (carriers), "
-        "vector Helmholtz (wave optics), and thermal diffusion differential equations across the ridge cross-section."
+        "Active region width w_active and thickness d_active are fully parameterized inputs, allowing waveguide "
+        "boundaries and mode shapes to adapt dynamically. Elmer FEM solves Poisson, drift-diffusion, vector Helmholtz, and thermal diffusion equations."
     )
     y = draw_paragraph(ax, p3_txt, 0.05, y)
 
@@ -179,8 +179,8 @@ with PdfPages(str(output_pdf_path)) as pdf:
     y -= 0.022
     m1_txt = (
         "Provides a global coupled multi-physics overview. The left sidebar contains parameter control sliders "
-        "(mirror coatings R1/R2, cavity length L, temperature T0, and injection current). The right main panel "
-        "displays 6 synchronized viewports: longitudinal carrier density N(z), longitudinal optical power P(z), "
+        "(mirror coatings R1/R2, cavity length L, active region width w_active, active region thickness d_active, temperature T0, and injection current). "
+        "The right main panel displays 6 synchronized viewports: longitudinal carrier density N(z), longitudinal optical power P(z), "
         "2D transverse optical waveguide mode, 2D temperature distribution, and horizontal/vertical cutlines. "
         "A lasing metrics card details the output power, efficiency, total current, and threshold state."
     )
