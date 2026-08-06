@@ -88,7 +88,7 @@ def main():
         st.error(f"Error loading PINN model weights: {e}")
         st.info("Please run the training script first: `python train_pinn.py` to generate the model weights.")
         return
-            # Initialize session state for design parameters if not present
+    # Initialize session state for design parameters if not present
     if "R1" not in st.session_state:
         st.session_state.R1 = 0.90
     if "R2" not in st.session_state:
@@ -99,7 +99,13 @@ def main():
         st.session_state.T0 = 300
     if "I_active" not in st.session_state:
         st.session_state.I_active = 0.13
-
+    if "enable_geom" not in st.session_state:
+        st.session_state.enable_geom = False
+    if "w_active" not in st.session_state:
+        st.session_state.w_active = 2.8
+    if "d_active" not in st.session_state:
+        st.session_state.d_active = 0.342
+        
     # View Mode Selector at the top of the sidebar
     mode = st.sidebar.radio("View Mode", ["📊 Multi-Physics Dashboard", "👁️ 3D Cavity Field Analyzer"])
 
@@ -112,6 +118,14 @@ def main():
         st.sidebar.subheader("Cavity Dimensions")
         L_um = st.sidebar.slider("Cavity Length L (μm)", 100, 1000, st.session_state.L_um, step=50)
         
+        enable_geom = st.sidebar.checkbox("📐 Enable Custom Geometry", value=st.session_state.enable_geom)
+        if enable_geom:
+            w_active = st.sidebar.slider("Active Region Width w (μm)", 1.5, 4.0, st.session_state.w_active, step=0.1)
+            d_active = st.sidebar.slider("Active Region Thickness d (μm)", 0.10, 0.50, st.session_state.d_active, step=0.01)
+        else:
+            w_active = 2.8
+            d_active = 0.342
+            
         st.sidebar.header("🔥 Operating Conditions")
         T0 = st.sidebar.slider("Ambient Temperature T0 (K)", 250, 360, st.session_state.T0, step=5)
         I_active = st.sidebar.slider("Active Region Injection Current (A)", 0.01, 0.50, st.session_state.I_active, step=0.01)
@@ -120,6 +134,9 @@ def main():
         st.session_state.R1 = R1
         st.session_state.R2 = R2
         st.session_state.L_um = L_um
+        st.session_state.enable_geom = enable_geom
+        st.session_state.w_active = w_active
+        st.session_state.d_active = d_active
         st.session_state.T0 = T0
         st.session_state.I_active = I_active
     else:
@@ -127,11 +144,22 @@ def main():
         R1 = st.session_state.R1
         R2 = st.session_state.R2
         L_um = st.session_state.L_um
+        enable_geom = st.session_state.enable_geom
+        w_active = st.session_state.w_active
+        d_active = st.session_state.d_active
         T0 = st.session_state.T0
         I_active = st.session_state.I_active
 
     # Predict in real-time
-    res = surrogate.predict(R1=R1, R2=R2, L_um=L_um, T0=T0, I_active=I_active)
+    res = surrogate.predict(
+        R1=R1,
+        R2=R2,
+        L_um=L_um,
+        T0=T0,
+        I_active=I_active,
+        w_active_um=w_active,
+        d_active_um=d_active
+    )
     
     P_opt = res["P_opt"]
     wpe = res["wpe"]
@@ -219,11 +247,14 @@ def main():
             ty = np.linspace(-2.0, 2.0, 40)
             TX, TY = np.meshgrid(tx, ty)
             
+            w_waist = 1.5 * (w_active / 2.8)
+            d_waist = 0.5 * (d_active / 0.342)
+            
             # Plot 3: 2D Mode intensity
             fig_m2d = plt.figure(figsize=(4.5, 2.3))
             ax_m2d = fig_m2d.add_axes([0.18, 0.20, 0.72, 0.68])
             norm_power = max(0.001, P_opt * 1000.0 / 250.0)
-            I_mode = norm_power * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+            I_mode = norm_power * np.exp(-TX**2 / w_waist**2 - TY**2 / d_waist**2)
             contour_m = ax_m2d.contourf(TX, TY, I_mode, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
             ax_m2d.set_title("Mode Intensity Shape |Ψ|²", color="white", fontsize=9, fontweight="bold")
             ax_m2d.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
@@ -234,9 +265,9 @@ def main():
             for spine in ax_m2d.spines.values():
                 spine.set_color("#30363d")
             # Add active region waveguide bounds
-            rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+            rect = plt.Rectangle((-w_active/2.0, -d_active/2.0), w_active, d_active, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
             ax_m2d.add_patch(rect)
-            ax_m2d.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+            ax_m2d.text(0, -d_active/2.0 - 0.3, f"Active Region ({w_active:.1f} x {d_active:.3f} μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
             st.pyplot(fig_m2d, use_container_width=True)
             
             # Plot 4: 2D Temperature heat map
@@ -263,7 +294,7 @@ def main():
             # Plot 5: Horizontal slice
             fig_sh = plt.figure(figsize=(4.5, 2.3))
             ax_sh = fig_sh.add_axes([0.18, 0.20, 0.72, 0.68])
-            I_horiz = norm_power * np.exp(-tx**2 / 1.5**2)
+            I_horiz = norm_power * np.exp(-tx**2 / w_waist**2)
             ax_sh.plot(tx, I_horiz, color="#ffcc00", linewidth=2.0, label="Horizontal Mode slice")
             ax_sh.set_title("Horizontal Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
             ax_sh.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
@@ -280,7 +311,7 @@ def main():
             # Plot 6: Vertical slice
             fig_sv = plt.figure(figsize=(4.5, 2.3))
             ax_sv = fig_sv.add_axes([0.18, 0.20, 0.72, 0.68])
-            I_vert = norm_power * np.exp(-ty**2 / 0.5**2)
+            I_vert = norm_power * np.exp(-ty**2 / d_waist**2)
             ax_sv.plot(ty, I_vert, color="#ff33cc", linewidth=2.0, label="Vertical Mode slice")
             ax_sv.set_title("Vertical Cut Mode Profile", color="white", fontsize=9, fontweight="bold")
             ax_sv.set_xlabel("y height (μm)", color="#8b949e", fontsize=7.5)
@@ -323,10 +354,13 @@ def main():
         TX, TY = np.meshgrid(tx, ty)
 
         with col_slice_mode:
+            w_waist_z = 1.5 * (w_active / 2.8)
+            d_waist_z = 0.5 * (d_active / 0.342)
+            
             fig_m2d_z = plt.figure(figsize=(4.5, 2.3))
             ax_m2d_z = fig_m2d_z.add_axes([0.18, 0.20, 0.72, 0.68])
             norm_power_z = max(0.001, P_prof[idx] * 1000.0 / 250.0)
-            I_mode_z = norm_power_z * np.exp(-TX**2 / 1.5**2 - TY**2 / 0.5**2)
+            I_mode_z = norm_power_z * np.exp(-TX**2 / w_waist_z**2 - TY**2 / d_waist_z**2)
             contour_m_z = ax_m2d_z.contourf(TX, TY, I_mode_z, levels=15, cmap=cmap_mode, vmin=0, vmax=1.2)
             ax_m2d_z.set_title(f"Local Optical Mode at z = {z_grid[idx]:.1f} μm", color="white", fontsize=9, fontweight="bold")
             ax_m2d_z.set_xlabel("x width (μm)", color="#8b949e", fontsize=7.5)
@@ -336,9 +370,9 @@ def main():
             fig_m2d_z.patch.set_facecolor("#0d1117")
             for spine in ax_m2d_z.spines.values():
                 spine.set_color("#30363d")
-            rect = plt.Rectangle((-1.4, -0.171), 2.8, 0.342, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
+            rect = plt.Rectangle((-w_active/2.0, -d_active/2.0), w_active, d_active, fill=False, edgecolor="#ffffff", linestyle=":", alpha=0.5)
             ax_m2d_z.add_patch(rect)
-            ax_m2d_z.text(0, -0.6, "Active Region (2.8 x 0.342 μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
+            ax_m2d_z.text(0, -d_active/2.0 - 0.3, f"Active Region ({w_active:.1f} x {d_active:.3f} μm)", color="white", fontsize=6.5, ha="center", alpha=0.7)
             st.pyplot(fig_m2d_z, use_container_width=True)
             
         with col_slice_temp:
@@ -372,7 +406,7 @@ def main():
         with col_3d_mode:
             fig_3d_m = plt.figure(figsize=(5, 1.3))
             ax_3d_m = fig_3d_m.add_subplot(111, projection="3d")
-            I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / 1.5**2)
+            I_3d = (P_prof[:, None] * 1000.0 / 250.0) * np.exp(-TX_3d**2 / w_waist_z**2)
             surf_m = ax_3d_m.plot_surface(TX_3d, TZ_3d, I_3d, cmap=cmap_mode, edgecolor="none", antialiased=True, vmin=0, vmax=1.2)
             ax_3d_m.set_title("3D Optical Intensity |Ψ(x, 0, z)|²", color="white", fontsize=9.5, fontweight="bold")
             ax_3d_m.set_xlabel("x width (μm)", color="#8b949e", fontsize=7)

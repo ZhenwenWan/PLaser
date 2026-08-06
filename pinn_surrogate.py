@@ -54,18 +54,42 @@ class PINNSurrogate:
         self.model.load_state_dict(torch.load(str(model_path), map_location=torch.device('cpu')))
         self.model.eval()
         
-    def predict(self, R1: float, R2: float, L_um: float, T0: float, I_active: float) -> dict[str, np.ndarray | float]:
+    def predict(
+        self,
+        R1: float,
+        R2: float,
+        L_um: float,
+        T0: float,
+        I_active: float,
+        w_active_um: float | None = None,
+        d_active_um: float | None = None
+    ) -> dict[str, np.ndarray | float]:
         """
         Instantly predicts laser performance metrics and profiles.
         R1, R2: reflectivities [0 to 1]
         L_um: cavity length in um
         T0: ambient temperature in K
         I_active: active region current in A
+        w_active_um: optional custom ridge width in um (default 2.8)
+        d_active_um: optional custom active thickness in um (default 0.342)
         """
         L = L_um * 1e-4  # cm
         
+        w_ref = 2.8
+        d_ref = 0.342
+        
+        if w_active_um is not None and d_active_um is not None:
+            area_ratio = (w_active_um * d_active_um) / (w_ref * d_ref)
+            w_ratio = w_active_um / w_ref
+        else:
+            area_ratio = 1.0
+            w_ratio = 1.0
+            
+        # Scale current to maintain same carrier injection rate G_inj in reference model
+        I_model_input = I_active / area_ratio
+        
         # Input vector
-        in_vec = np.array([R1, R2, L, T0, I_active], dtype=np.float32)
+        in_vec = np.array([R1, R2, L, T0, I_model_input], dtype=np.float32)
         
         # Scale
         scaled_in = (in_vec - self.in_min) / (self.in_max - self.in_min)
@@ -79,12 +103,24 @@ class PINNSurrogate:
         out_vec = scaled_out * (self.out_max - self.out_min) + self.out_min
         
         # Parse output vector: [P_opt, wpe, I_total, 51-point N, 51-point P]
-        P_opt = float(max(out_vec[0], 0.0))
-        wpe = float(max(out_vec[1], 0.0))
-        I_total = float(max(out_vec[2], 0.0))
+        P_opt_model = float(max(out_vec[0], 0.0))
+        I_total_model = float(max(out_vec[2], 0.0))
         
         N_profile = np.clip(out_vec[3:54], a_min=1.0e15, a_max=None)
-        P_profile = np.clip(out_vec[54:105], a_min=0.0, a_max=None)
+        P_profile_model = np.clip(out_vec[54:105], a_min=0.0, a_max=None)
+        
+        # Scale outputs according to area and width ratios
+        P_opt = P_opt_model * area_ratio
+        P_profile = P_profile_model * area_ratio
+        
+        # Shunt current scales with contact stripe width
+        I_shunt_model = I_total_model - I_model_input
+        I_total = I_active + I_shunt_model * w_ratio
+        
+        # Recalculate WPE based on scaled outputs
+        V_bias = 1.0499
+        P_elec = I_total * V_bias
+        wpe = P_opt / P_elec if P_elec > 0.0 else 0.0
         
         z_grid = np.linspace(0.0, L_um, 51)
         
