@@ -28,8 +28,8 @@ class Quasi3DSimulator:
         self.R2 = R2
         self.M = M
         self.alpha_i = alpha_i
-        self.w_active = 2.8e-4       # cm
-        self.d_active = 0.342e-4     # cm (342 nm active MQW height)
+        self.w_active = w_active
+        self.d_active = d_active
         self.n_g = n_g
         self.n_r = n_r
         self.T0 = T0

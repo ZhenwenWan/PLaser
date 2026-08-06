@@ -46,7 +46,7 @@ class PINNSurrogate:
         self.out_max = data["out_max"]
         
         # Initialize and load model weights
-        self.model = PINNLaser(5, 105)
+        self.model = PINNLaser(7, 105)
         model_path = model_dir / "models" / "pinn_laser_model.pt" if (model_dir / "models").exists() else model_dir / "pinn_laser_model.pt"
         if not model_path.exists():
             raise FileNotFoundError(f"Model weights not found at {model_path}")
@@ -74,22 +74,11 @@ class PINNSurrogate:
         d_active_um: optional custom active thickness in um (default 0.342)
         """
         L = L_um * 1e-4  # cm
-        
-        w_ref = 2.8
-        d_ref = 0.342
-        
-        if w_active_um is not None and d_active_um is not None:
-            area_ratio = (w_active_um * d_active_um) / (w_ref * d_ref)
-            w_ratio = w_active_um / w_ref
-        else:
-            area_ratio = 1.0
-            w_ratio = 1.0
-            
-        # Scale current to maintain same carrier injection rate G_inj in reference model
-        I_model_input = I_active / area_ratio
+        w = (w_active_um if w_active_um is not None else 2.8) * 1e-4  # cm
+        d = (d_active_um if d_active_um is not None else 0.342) * 1e-4  # cm
         
         # Input vector
-        in_vec = np.array([R1, R2, L, T0, I_model_input], dtype=np.float32)
+        in_vec = np.array([R1, R2, L, T0, I_active, w, d], dtype=np.float32)
         
         # Scale
         scaled_in = (in_vec - self.in_min) / (self.in_max - self.in_min)
@@ -103,24 +92,12 @@ class PINNSurrogate:
         out_vec = scaled_out * (self.out_max - self.out_min) + self.out_min
         
         # Parse output vector: [P_opt, wpe, I_total, 51-point N, 51-point P]
-        P_opt_model = float(max(out_vec[0], 0.0))
-        I_total_model = float(max(out_vec[2], 0.0))
+        P_opt = float(max(out_vec[0], 0.0))
+        wpe = float(max(out_vec[1], 0.0))
+        I_total = float(max(out_vec[2], 0.0))
         
         N_profile = np.clip(out_vec[3:54], a_min=1.0e15, a_max=None)
-        P_profile_model = np.clip(out_vec[54:105], a_min=0.0, a_max=None)
-        
-        # Scale outputs according to area and width ratios
-        P_opt = P_opt_model * area_ratio
-        P_profile = P_profile_model * area_ratio
-        
-        # Shunt current scales with contact stripe width
-        I_shunt_model = I_total_model - I_model_input
-        I_total = I_active + I_shunt_model * w_ratio
-        
-        # Recalculate WPE based on scaled outputs
-        V_bias = 1.0499
-        P_elec = I_total * V_bias
-        wpe = P_opt / P_elec if P_elec > 0.0 else 0.0
+        P_profile = np.clip(out_vec[54:105], a_min=0.0, a_max=None)
         
         z_grid = np.linspace(0.0, L_um, 51)
         
